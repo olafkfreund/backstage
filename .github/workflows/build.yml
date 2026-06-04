@@ -46,7 +46,9 @@ jobs:
           CI: true
 
       - name: Build backend bundle
-        run: yarn build:backend --config app-config.production.yaml
+        run: yarn build:backend
+        # production overrides are applied at runtime via Dockerfile CMD,
+        # not bundled into the build output. The build only needs app-config.yaml.
 
       - name: Lowercase image name
         id: lc
