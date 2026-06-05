@@ -14,7 +14,12 @@
     "lint": "backstage-cli package lint"
   },
   "dependencies": {
+    "@backstage-community/plugin-copilot": "^0.20.0",
+    "@backstage-community/plugin-github-actions": "^1.1.0",
     "@backstage-community/plugin-github-deployments": "^1.1.0",
+    "@backstage-community/plugin-github-issues": "^1.1.0",
+    "@backstage-community/plugin-github-pull-requests-board": "^1.1.0",
+    "@backstage-community/plugin-tech-insights": "^1.4.0",
     "@backstage-community/plugin-tech-radar": "^1.18.0",
     "@backstage/cli": "^0.36.2",
     "@backstage/core-compat-api": "^0.5.11",

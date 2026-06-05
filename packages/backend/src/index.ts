@@ -93,6 +93,16 @@ backend.add(import('@backstage/plugin-signals-backend'));
 // mcp actions plugin
 backend.add(import('@backstage/plugin-mcp-actions-backend'));
 
+// Tech Insights: runs scheduled fact retrievers + JSON-rules checks
+// across catalog entities, surfaces scorecards on entity pages.
+// Default fact retrievers + a JSON Rules Engine module register
+// without any further config — see app-config.production.yaml for
+// the actual check definitions if you want to add custom ones.
+backend.add(import('@backstage-community/plugin-tech-insights-backend'));
+backend.add(
+  import('@backstage-community/plugin-tech-insights-backend-module-jsonfc'),
+);
+
 // Events backend + GitHub module. Exposes POST /api/events/http/github
 // for GitHub webhook delivery, validates HMAC-SHA256 with the secret
 // from env (GITHUB_WEBHOOK_SECRET, bridged from agenix), and publishes
