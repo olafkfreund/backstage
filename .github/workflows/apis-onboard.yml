@@ -1,0 +1,272 @@
+name: APIs onboard
+
+# Scans every olafkfreund/* repo (with catalog-info.yaml) for known API
+# spec files and, when one is found, opens a PR that:
+#   1. Adds a `kind: API` entity to that repo's catalog-info.yaml
+#      pointing at the spec file via spec.definition.$text (Backstage
+#      fetches and renders the OpenAPI/AsyncAPI/GraphQL/gRPC inline)
+#   2. Appends the new API name to Component.spec.providesApis so the
+#      catalog graph shows the relationship
+#
+# Spec types and paths searched (in order of priority):
+#   OpenAPI:   openapi.yaml, openapi.yml, openapi.json, api/openapi.yaml,
+#              docs/openapi.yaml, swagger.yaml, swagger.json
+#   GraphQL:   schema.graphql, schema.gql, src/schema.graphql,
+#              api/schema.graphql
+#   gRPC/Proto: *.proto in repo root or proto/, api/, protos/
+#   AsyncAPI:  asyncapi.yaml, asyncapi.json
+#
+# Repos with NO spec at any of these paths are skipped — no stub
+# annotation pollution.
+#
+# Idempotent: skips repos that already have a `kind: API` entity OR an
+# open APIs onboarding PR. Re-run anytime; existing API entities are
+# left alone.
+#
+# Requires the same BOT_PAT secret as the other onboarders.
+
+on:
+  schedule:
+    - cron: '57 6 * * *' # daily ~06:57 UTC (after catalog + techdocs)
+  workflow_dispatch:
+    inputs:
+      max_prs:
+        description: 'Max PRs per run'
+        required: false
+        default: '10'
+      dry_run:
+        description: 'List candidates, do not open PRs'
+        required: false
+        default: 'false'
+        type: choice
+        options: [ 'false', 'true' ]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: apis-onboard
+  cancel-in-progress: false
+
+jobs:
+  onboard:
+    runs-on: ubuntu-24.04
+    if: ${{ github.repository_owner == 'olafkfreund' }}
+    env:
+      GH_TOKEN: ${{ secrets.BOT_PAT }}
+      MAX_PRS: ${{ github.event.inputs.max_prs || '10' }}
+      DRY_RUN: ${{ github.event.inputs.dry_run || 'false' }}
+    steps:
+      - name: Verify BOT_PAT is set
+        run: |
+          if [ -z "${{ secrets.BOT_PAT }}" ]; then
+            echo "::error::BOT_PAT secret is not set."; exit 1
+          fi
+
+      - name: Discover repos with API specs
+        id: pick
+        run: |
+          set -euo pipefail
+          gh repo list olafkfreund --limit 1000 \
+            --json name,defaultBranchRef,description \
+            > all_repos.json
+
+          # Search prioritised list of paths in each repo via the
+          # contents API. First hit wins so we don't double-create.
+          declare -a OPENAPI_PATHS=(
+            "openapi.yaml" "openapi.yml" "openapi.json"
+            "api/openapi.yaml" "api/openapi.yml" "api/openapi.json"
+            "docs/openapi.yaml" "docs/openapi.yml" "docs/openapi.json"
+            "swagger.yaml" "swagger.yml" "swagger.json"
+          )
+          declare -a ASYNCAPI_PATHS=(
+            "asyncapi.yaml" "asyncapi.yml" "asyncapi.json"
+            "docs/asyncapi.yaml"
+          )
+          declare -a GRAPHQL_PATHS=(
+            "schema.graphql" "schema.gql"
+            "src/schema.graphql" "src/schema.gql"
+            "api/schema.graphql" "api/schema.gql"
+          )
+
+          : > candidates.jsonl
+
+          jq -c '.[]' all_repos.json | while read -r repo; do
+            name=$(jq -r '.name' <<<"$repo")
+            default_branch=$(jq -r '.defaultBranchRef.name // "main"' <<<"$repo")
+
+            # Skip if no catalog-info.yaml
+            if ! gh api "repos/olafkfreund/$name/contents/catalog-info.yaml?ref=$default_branch" \
+                 --silent 2>/dev/null; then continue; fi
+
+            # Skip if an API entity already declared. Use raw contents
+            # to grep for "kind: API" which is a clearer marker than
+            # parsing the YAML.
+            ci=$(gh api "repos/olafkfreund/$name/contents/catalog-info.yaml?ref=$default_branch" \
+                 --jq '.content' 2>/dev/null | base64 -d 2>/dev/null || true)
+            if printf '%s' "$ci" | grep -qE "^kind:\s*API\b"; then continue; fi
+
+            # Skip if onboarding PR already open
+            open_pr=$(gh pr list --repo "olafkfreund/$name" --state open \
+                       --search 'in:title "onboard APIs"' --json number -q 'length' 2>/dev/null || echo 0)
+            if [ "$open_pr" -gt 0 ]; then continue; fi
+
+            # Probe paths — first hit wins. Pass the array name to find_spec.
+            find_spec() {
+              local type="$1"; shift
+              for p in "$@"; do
+                if gh api "repos/olafkfreund/$name/contents/$p?ref=$default_branch" --silent 2>/dev/null; then
+                  echo "$type|$p"
+                  return 0
+                fi
+              done
+              return 1
+            }
+
+            spec=""
+            spec=$(find_spec openapi "${OPENAPI_PATHS[@]}") \
+              || spec=$(find_spec asyncapi "${ASYNCAPI_PATHS[@]}") \
+              || spec=$(find_spec graphql "${GRAPHQL_PATHS[@]}") \
+              || true
+
+            if [ -z "$spec" ]; then
+              # gRPC — search for any *.proto under proto/, api/, protos/
+              for d in proto api protos; do
+                proto_path=$(gh api "repos/olafkfreund/$name/contents/$d?ref=$default_branch" \
+                             --jq '[.[]? | select(.type=="file" and (.name|endswith(".proto")))][0].path' \
+                             2>/dev/null || true)
+                if [ -n "$proto_path" ] && [ "$proto_path" != "null" ]; then
+                  spec="grpc|$proto_path"
+                  break
+                fi
+              done
+            fi
+
+            if [ -n "$spec" ]; then
+              type="${spec%%|*}"
+              path="${spec#*|}"
+              jq -c --arg type "$type" --arg path "$path" \
+                '. + {spec_type: $type, spec_path: $path}' <<<"$repo" \
+                >> candidates.jsonl
+            fi
+          done
+
+          head -n "$MAX_PRS" candidates.jsonl > to_onboard.jsonl
+          count=$(wc -l < to_onboard.jsonl)
+          remaining=$(($(wc -l < candidates.jsonl) - count))
+          echo "count=$count" >> "$GITHUB_OUTPUT"
+          echo "remaining=$remaining" >> "$GITHUB_OUTPUT"
+          echo "::notice::APIs-onboarding $count repos this run; $remaining still pending."
+          [ -s candidates.jsonl ] && jq -r '"  → " + .name + " (" + .spec_type + ": " + .spec_path + ")"' candidates.jsonl | head -50
+
+      - name: Configure git identity for the bot
+        if: ${{ steps.pick.outputs.count != '0' && env.DRY_RUN == 'false' }}
+        run: |
+          git config --global user.email "olaf@freundcloud.com"
+          git config --global user.name "olafkfreund (apis onboard bot)"
+
+      - name: Open onboarding PRs
+        if: ${{ steps.pick.outputs.count != '0' && env.DRY_RUN == 'false' }}
+        run: |
+          set -euo pipefail
+          while IFS= read -r repo; do
+            name=$(jq -r '.name' <<<"$repo")
+            default_branch=$(jq -r '.defaultBranchRef.name // "main"' <<<"$repo")
+            description=$(jq -r '.description // ""' <<<"$repo")
+            spec_type=$(jq -r '.spec_type' <<<"$repo")
+            spec_path=$(jq -r '.spec_path' <<<"$repo")
+
+            tmpdir=$(mktemp -d)
+            trap 'rm -rf "$tmpdir"' EXIT
+
+            if ! git clone --depth 1 \
+                 "https://x-access-token:${GH_TOKEN}@github.com/olafkfreund/${name}.git" \
+                 "$tmpdir/repo" 2>/dev/null; then
+              echo "::warning::clone failed for $name (likely 403; skipping)"
+              rm -rf "$tmpdir"; trap - EXIT; continue
+            fi
+            cd "$tmpdir/repo"
+
+            # Compose API entity + add providesApis to Component.
+            python3 - <<PY
+          import re
+          name = "$name"
+          spec_type = "$spec_type"
+          spec_path = "$spec_path"
+          default_branch = "$default_branch"
+          api_name = name  # 1:1 with the component name
+          spec_url = f"https://github.com/olafkfreund/{name}/blob/{default_branch}/{spec_path}"
+
+          with open("catalog-info.yaml") as f: src = f.read()
+
+          # 1) Append providesApis under Component spec if missing.
+          if "providesApis:" not in src:
+            # Locate the Component's "spec:" and append providesApis
+            # before the next "---" or EOF.
+            def insert_provides(text):
+              # Append to last spec block (Component is typically the
+              # only kind in onboarded files).
+              m = re.search(r"(\nspec:\s*\n(?:.*\n)*?)(\n---|\Z)", text)
+              if not m: return text
+              spec_block = m.group(1)
+              if "providesApis:" not in spec_block:
+                spec_block = spec_block.rstrip("\n") + f"\n  providesApis:\n    - {api_name}\n"
+              return text[:m.start()] + spec_block + (m.group(2) or "") + text[m.end():]
+            src = insert_provides(src)
+
+          # 2) Append API entity at end of file.
+          api_yaml = f"""
+          ---
+          apiVersion: backstage.io/v1alpha1
+          kind: API
+          metadata:
+            name: {api_name}
+            description: {spec_type.upper()} spec for {name}
+          spec:
+            type: {spec_type}
+            lifecycle: production
+            owner: olafkfreund
+            definition:
+              \$text: {spec_url}
+          """
+          # Strip leading blank line for cleaner diff
+          src = src.rstrip("\n") + "\n" + api_yaml.lstrip("\n")
+          with open("catalog-info.yaml", "w") as f: f.write(src)
+          PY
+
+            branch="chore/backstage-apis-onboard"
+            git checkout -b "$branch"
+            git add catalog-info.yaml
+            git commit -m "chore: onboard APIs to Backstage catalog
+
+          Adds a kind:API entity pointing at $spec_path ($spec_type) and
+          appends providesApis: [$name] to the Component. Backstage renders
+          the spec via the api-docs plugin."
+            git push -u origin "$branch"
+
+            gh pr create \
+              --repo "olafkfreund/${name}" \
+              --base "$default_branch" \
+              --head "$branch" \
+              --title "chore: onboard APIs" \
+              --body "Discovered \`$spec_path\` ($spec_type). This PR adds:
+
+          - A \`kind: API\` entity to catalog-info.yaml referencing the spec via \`spec.definition.\$text\`
+          - \`providesApis: [$name]\` on the existing Component so the catalog graph links them
+
+          After merge, the **API** tab on this entity in [Backstage](https://p510.tail833f7.ts.net/backstage) will render the spec.
+
+          Auto-generated by [olafkfreund/backstage apis-onboard workflow](https://github.com/olafkfreund/backstage/blob/main/.github/workflows/apis-onboard.yml)." \
+              || echo "::warning::PR creation failed for $name"
+
+            cd /tmp
+            rm -rf "$tmpdir"; trap - EXIT
+          done < to_onboard.jsonl
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## APIs onboard summary" >> "$GITHUB_STEP_SUMMARY"
+          echo "- This run: ${{ steps.pick.outputs.count || 0 }} repos" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Remaining: ${{ steps.pick.outputs.remaining || 0 }} repos" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Dry-run: ${{ env.DRY_RUN }}" >> "$GITHUB_STEP_SUMMARY"
