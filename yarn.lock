@@ -2145,7 +2145,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@backstage/core-components@npm:^0.14.4, @backstage/core-components@npm:^0.14.9":
+"@backstage/core-components@npm:^0.14.4":
   version: 0.14.10
   resolution: "@backstage/core-components@npm:0.14.10"
   dependencies:
@@ -2511,26 +2511,6 @@ __metadata:
     "@types/react":
       optional: true
   checksum: 10c0/b79197554f2d8915ad698405e7c169e0835463060780b48bbbf34e8a3a094b576ad6d21bbe1d72994d3961db7d8654510efcf09f25f9f5c2f439a9e6c71ad68d
-  languageName: node
-  linkType: hard
-
-"@backstage/frontend-plugin-api@npm:^0.6.4":
-  version: 0.6.7
-  resolution: "@backstage/frontend-plugin-api@npm:0.6.7"
-  dependencies:
-    "@backstage/core-components": "npm:^0.14.9"
-    "@backstage/core-plugin-api": "npm:^1.9.3"
-    "@backstage/types": "npm:^1.1.1"
-    "@backstage/version-bridge": "npm:^1.0.8"
-    "@material-ui/core": "npm:^4.12.4"
-    "@types/react": "npm:^16.13.1 || ^17.0.0 || ^18.0.0"
-    lodash: "npm:^4.17.21"
-    zod: "npm:^3.22.4"
-    zod-to-json-schema: "npm:^3.21.4"
-  peerDependencies:
-    react: ^16.13.1 || ^17.0.0 || ^18.0.0
-    react-router-dom: 6.0.0-beta.0 || ^6.3.0
-  checksum: 10c0/7185d050447a51837a43906c050936e188a6341fc42fffd9fb3e40d18594a3b107445e60c245312b078a82ccc12c3ac6a5ff546aaae312870ebebfa26cac2a6e
   languageName: node
   linkType: hard
 
@@ -3415,55 +3395,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@backstage/plugin-explore-common@npm:^0.0.3":
-  version: 0.0.3
-  resolution: "@backstage/plugin-explore-common@npm:0.0.3"
-  checksum: 10c0/add214227b3a206994bf0e3727b069bdda7e5acc49b8185bd73bcc47f6906f56d3a32c850f90c7f47ed5e3dab45226fb187e6f197982117a19f1c902e7f412ef
-  languageName: node
-  linkType: hard
-
-"@backstage/plugin-explore-react@npm:^0.0.39":
-  version: 0.0.39
-  resolution: "@backstage/plugin-explore-react@npm:0.0.39"
-  dependencies:
-    "@backstage/core-plugin-api": "npm:^1.9.2"
-    "@backstage/plugin-explore-common": "npm:^0.0.3"
-  peerDependencies:
-    react: ^16.13.1 || ^17.0.0 || ^18.0.0
-    react-dom: ^16.13.1 || ^17.0.0 || ^18.0.0
-    react-router-dom: 6.0.0-beta.0 || ^6.3.0
-  checksum: 10c0/285005a832274665fb1962f55f4c8eef87f58b2b7b5b134ab9b98d8a010f005039f70bba969a5bd4a1a96db96c3c1832aeb336f811d87c628845f219a44392b4
-  languageName: node
-  linkType: hard
-
-"@backstage/plugin-explore@npm:^0.4.21":
-  version: 0.4.21
-  resolution: "@backstage/plugin-explore@npm:0.4.21"
-  dependencies:
-    "@backstage/catalog-model": "npm:^1.4.5"
-    "@backstage/core-components": "npm:^0.14.4"
-    "@backstage/core-plugin-api": "npm:^1.9.2"
-    "@backstage/errors": "npm:^1.2.4"
-    "@backstage/frontend-plugin-api": "npm:^0.6.4"
-    "@backstage/plugin-catalog-react": "npm:^1.11.3"
-    "@backstage/plugin-explore-common": "npm:^0.0.3"
-    "@backstage/plugin-explore-react": "npm:^0.0.39"
-    "@backstage/plugin-search-common": "npm:^1.2.11"
-    "@backstage/plugin-search-react": "npm:^1.7.10"
-    "@material-ui/core": "npm:^4.12.2"
-    "@material-ui/icons": "npm:^4.9.1"
-    "@types/react": "npm:^16.13.1 || ^17.0.0 || ^18.0.0"
-    classnames: "npm:^2.2.6"
-    pluralize: "npm:^8.0.0"
-    react-use: "npm:^17.2.4"
-  peerDependencies:
-    react: ^16.13.1 || ^17.0.0 || ^18.0.0
-    react-dom: ^16.13.1 || ^17.0.0 || ^18.0.0
-    react-router-dom: 6.0.0-beta.0 || ^6.3.0
-  checksum: 10c0/698640f4c8e05fefb2c16c15e9ce8dd0fe4d94e3ced933fd3ed336719d7e463abacd281976166aaaf745e1d56ce5905a7c27806a9f65c8396eb45c4831c26afe
-  languageName: node
-  linkType: hard
-
 "@backstage/plugin-github-actions@npm:^0.6.16":
   version: 0.6.16
   resolution: "@backstage/plugin-github-actions@npm:0.6.16"
@@ -4150,7 +4081,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@backstage/plugin-search-common@npm:^1.2.11, @backstage/plugin-search-common@npm:^1.2.24":
+"@backstage/plugin-search-common@npm:^1.2.24":
   version: 1.2.24
   resolution: "@backstage/plugin-search-common@npm:1.2.24"
   dependencies:
@@ -4160,7 +4091,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@backstage/plugin-search-react@npm:^1.11.4, @backstage/plugin-search-react@npm:^1.7.10":
+"@backstage/plugin-search-react@npm:^1.11.4":
   version: 1.11.4
   resolution: "@backstage/plugin-search-react@npm:1.11.4"
   dependencies:
@@ -4595,7 +4526,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@backstage/types@npm:^1.1.1, @backstage/types@npm:^1.2.2":
+"@backstage/types@npm:^1.2.2":
   version: 1.2.2
   resolution: "@backstage/types@npm:1.2.2"
   checksum: 10c0/3c947cf83c058a56b0cfd90d91483e9a5c1c913f7978a0d5a3c0fd9b502d08e9bdf279afba626826eee84159e698ee4cdaa70040789ac47fc8a25df9f1925612
@@ -13339,7 +13270,6 @@ __metadata:
     "@backstage/plugin-catalog": "npm:^2.0.5"
     "@backstage/plugin-catalog-graph": "npm:^0.6.4"
     "@backstage/plugin-catalog-import": "npm:^0.13.13"
-    "@backstage/plugin-explore": "npm:^0.4.21"
     "@backstage/plugin-github-actions": "npm:^0.6.16"
     "@backstage/plugin-home": "npm:^0.9.6"
     "@backstage/plugin-notifications": "npm:^0.5.17"
