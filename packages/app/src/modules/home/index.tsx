@@ -10,14 +10,17 @@
 import { createFrontendModule, PageBlueprint } from '@backstage/frontend-plugin-api';
 import {
   HeaderWorldClock,
-  HomePageRecentlyVisited,
   HomePageStarredEntities,
   HomePageToolkit,
-  HomePageTopVisited,
   WelcomeTitle,
   type ClockConfig,
   type Tool,
 } from '@backstage/plugin-home';
+// HomePageRecentlyVisited + HomePageTopVisited need the `homepage.visits`
+// API, which the declarative-frontend variant of @backstage/plugin-home
+// doesn't auto-register. They render two ugly "Error: Something Went
+// Wrong" alerts. Dropping them; the 4 GitHub-data widgets + StarredEntities
+// + Toolkit are plenty.
 import { Content, Header, Page } from '@backstage/core-components';
 import Grid from '@material-ui/core/Grid';
 
@@ -111,13 +114,7 @@ const HomePageContent = () => (
           <HomePageStarredEntities />
         </Grid>
         <Grid item xs={12} md={6}>
-          <HomePageRecentlyVisited />
-        </Grid>
-        <Grid item xs={12} md={6}>
           <HomePageToolkit title="Toolkit" tools={tools} />
-        </Grid>
-        <Grid item xs={12} md={6}>
-          <HomePageTopVisited />
         </Grid>
       </Grid>
     </Content>
