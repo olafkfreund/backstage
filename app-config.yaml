@@ -10,6 +10,15 @@ app:
     - page:catalog:
         config:
           path: /
+    # Sign-in page: list both providers. Guest is universally available;
+    # github only resolves to the real OAuth flow when
+    # auth.providers.github is configured (production only — dev falls
+    # through to guest silently).
+    - app/sign-in-page:
+        config:
+          providers:
+            - guest
+            - github
 
 organization:
   name: My Company
