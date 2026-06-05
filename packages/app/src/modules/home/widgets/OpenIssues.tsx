@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { InfoCard } from '@backstage/core-components';
 import { githubAuthApiRef, useApi } from '@backstage/core-plugin-api';
 import List from '@material-ui/core/List';
@@ -13,10 +13,9 @@ import { makeStyles } from '@material-ui/core/styles';
 
 const CARD_TITLE = 'Open issues across repos';
 const REFRESH_INTERVAL_MS = 5 * 60 * 1000;
-const SEARCH_URL =
-  'https://api.github.com/search/issues?q=' +
-  encodeURIComponent('is:issue is:open user:olafkfreund archived:false') +
-  '&sort=created&order=asc&per_page=20';
+const SEARCH_URL = `https://api.github.com/search/issues?q=${encodeURIComponent(
+  'is:issue is:open user:olafkfreund archived:false',
+)}&sort=created&order=asc&per_page=20`;
 
 type GithubLabel = {
   id?: number;

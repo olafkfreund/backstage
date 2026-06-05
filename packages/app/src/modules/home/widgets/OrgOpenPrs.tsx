@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { InfoCard } from '@backstage/core-components';
 import { githubAuthApiRef, useApi } from '@backstage/core-plugin-api';
 import CircularProgress from '@material-ui/core/CircularProgress';
@@ -10,10 +10,7 @@ import Typography from '@material-ui/core/Typography';
 import { makeStyles } from '@material-ui/core/styles';
 
 const GITHUB_USER = 'olafkfreund';
-const SEARCH_URL =
-  'https://api.github.com/search/issues?q=is:pr+is:open+author:' +
-  GITHUB_USER +
-  '+archived:false&sort=created&order=asc&per_page=20';
+const SEARCH_URL = `https://api.github.com/search/issues?q=is:pr+is:open+author:${GITHUB_USER}+archived:false&sort=created&order=asc&per_page=20`;
 const REFRESH_INTERVAL_MS = 5 * 60 * 1000;
 
 type ReviewState = 'approved' | 'changes_requested' | 'pending' | 'none';
