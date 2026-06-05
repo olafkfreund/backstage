@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { InfoCard } from '@backstage/core-components';
 import { githubAuthApiRef, useApi } from '@backstage/core-plugin-api';
+import { useSignal } from '@backstage/plugin-signals-react';
 import Box from '@material-ui/core/Box';
 import CircularProgress from '@material-ui/core/CircularProgress';
 import Link from '@material-ui/core/Link';
@@ -290,6 +291,21 @@ export const RecentActivity: React.FC = () => {
       window.clearInterval(intervalId);
     };
   }, [fetchCommits]);
+
+  // Real-time refresh: when the signals bridge re-broadcasts a github
+  // event onto the `github:activity` channel, re-fetch immediately.
+  // The 5-min poll above remains as a fallback for clients that lose
+  // signals connectivity. isSignalsAvailable is false in environments
+  // without the signals backend wired — silent no-op there.
+  const { lastSignal } = useSignal('github:activity');
+  useEffect(() => {
+    if (!lastSignal) {
+      return undefined;
+    }
+    const refreshController = new AbortController();
+    void fetchCommits(refreshController.signal);
+    return () => refreshController.abort();
+  }, [lastSignal, fetchCommits]);
 
   const renderBody = (): React.ReactNode => {
     if (loading && rows.length === 0) {
