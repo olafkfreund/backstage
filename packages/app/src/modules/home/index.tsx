@@ -126,10 +126,16 @@ const HomePageContent = () => (
 // (no name suffix). To replace it we must also omit `name` here so the
 // IDs match — otherwise this just registers a second `/home` route that
 // loses to the default in react-router resolution.
+//
+// MUST pass `title` and `icon` through to originalFactory — the sidebar's
+// nav-item extension reads them off the page extension to render the
+// "Home" entry in the left menu. Dropping them makes the Home link vanish.
 const homePageOverride = PageBlueprint.makeWithOverrides({
   factory(originalFactory) {
     return originalFactory({
       path: '/home',
+      title: 'Home',
+      icon: <HomeIcon />,
       loader: async () => <HomePageContent />,
     });
   },
