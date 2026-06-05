@@ -12840,6 +12840,7 @@ __metadata:
     "@backstage/plugin-techdocs-module-addons-contrib": "npm:^1.1.36"
     "@backstage/plugin-todo": "npm:^0.2.39"
     "@backstage/plugin-user-settings": "npm:^0.9.3"
+    "@backstage/theme": "npm:^0.7.3"
     "@backstage/ui": "npm:^0.15.0"
     "@material-ui/core": "npm:^4.12.2"
     "@material-ui/icons": "npm:^4.9.1"
