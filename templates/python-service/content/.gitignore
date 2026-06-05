@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+.eggs/
+dist/
+build/
+wheels/
+pip-wheel-metadata/
+.installed.cfg
+MANIFEST
+
+# Virtualenvs
+.venv/
+venv/
+env/
+.env
+
+# uv
+# uv.lock IS committed; uv's caches are not
+.uv-cache/
+
+# Test / coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.mypy_cache/
+.ruff_cache/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Nix / direnv
+/result
+/result-*
+.direnv/
+.envrc.local

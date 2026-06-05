@@ -30,6 +30,11 @@ import GitHubIcon from '@material-ui/icons/GitHub';
 import SecurityIcon from '@material-ui/icons/Security';
 import CloudIcon from '@material-ui/icons/Cloud';
 
+import { OrgOpenPrs } from './widgets/OrgOpenPrs';
+import { ReviewRequested } from './widgets/ReviewRequested';
+import { RecentActivity } from './widgets/RecentActivity';
+import { OpenIssues } from './widgets/OpenIssues';
+
 const clockConfigs: ClockConfig[] = [
   { label: 'UTC', timeZone: 'UTC' },
   { label: 'London', timeZone: 'Europe/London' },
@@ -86,6 +91,18 @@ const HomePageContent = () => (
     </Header>
     <Content>
       <Grid container spacing={3}>
+        <Grid item xs={12} md={6}>
+          <OrgOpenPrs />
+        </Grid>
+        <Grid item xs={12} md={6}>
+          <ReviewRequested />
+        </Grid>
+        <Grid item xs={12} md={6}>
+          <RecentActivity />
+        </Grid>
+        <Grid item xs={12} md={6}>
+          <OpenIssues />
+        </Grid>
         <Grid item xs={12} md={6}>
           <HomePageStarredEntities />
         </Grid>

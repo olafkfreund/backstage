@@ -1,0 +1,139 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: python-service
+  title: Python Service (FastAPI + uv + flake)
+  description: |
+    Production-ready Python web service skeleton with:
+    - FastAPI + Pydantic v2 + uvicorn + structlog
+    - Auto-generated OpenAPI 3.1 spec at /openapi.json (FastAPI route decorators)
+    - uv-managed dependencies (10x faster than pip)
+    - GitHub Actions CI: ruff, pytest, mypy --strict, wheel build
+    - Nix flake for reproducible dev/build (works with direnv)
+    - mkdocs.yml + docs/ wired for Backstage TechDocs
+    - AGENTS.md + .claude/skills for AI coding assistants
+    - Pre-configured catalog-info.yaml: registers in Backstage automatically
+  tags:
+    - python
+    - service
+    - fastapi
+    - uv
+    - nix
+spec:
+  owner: olafkfreund
+  type: service
+
+  parameters:
+    - title: Project basics
+      required:
+        - name
+        - description
+        - owner
+      properties:
+        name:
+          title: Name
+          type: string
+          description: lowercase, hyphen-separated. Used as package name AND repo name.
+          pattern: '^[a-z0-9-]+$'
+          ui:autofocus: true
+        description:
+          title: Description
+          type: string
+          description: One-line summary (<100 chars). Goes into pyproject.toml + catalog.
+          maxLength: 100
+        owner:
+          title: Owner
+          type: string
+          description: User or Group entity that owns the new service.
+          default: olafkfreund
+          ui:field: OwnerPicker
+          ui:options:
+            catalogFilter:
+              kind: [Group, User]
+        system:
+          title: System (optional)
+          type: string
+          description: System this service belongs to.
+          default: freundcloud-infra
+
+    - title: Service options
+      properties:
+        listenPort:
+          title: HTTP listen port
+          type: integer
+          default: 8000
+        pythonVersion:
+          title: Python version
+          type: string
+          default: "3.12"
+          enum:
+            - "3.11"
+            - "3.12"
+            - "3.13"
+        includeFlake:
+          title: Include flake.nix
+          type: boolean
+          default: true
+          description: Adds Nix flake + .envrc for reproducible dev.
+        includeClaudeSkills:
+          title: Include AGENTS.md + .claude/ skills
+          type: boolean
+          default: true
+          description: AI coding-assistant guidance specific to this stack.
+
+    - title: Where to publish
+      required:
+        - repoUrl
+      properties:
+        repoUrl:
+          title: Repository
+          type: string
+          ui:field: RepoUrlPicker
+          ui:options:
+            allowedHosts:
+              - github.com
+            allowedOwners:
+              - olafkfreund
+              - Freundcloud
+
+  steps:
+    - id: fetch
+      name: Fetch skeleton + template variables
+      action: fetch:template
+      input:
+        url: ./content
+        values:
+          name: ${{ parameters.name }}
+          description: ${{ parameters.description }}
+          owner: ${{ parameters.owner }}
+          system: ${{ parameters.system }}
+          listenPort: ${{ parameters.listenPort }}
+          pythonVersion: ${{ parameters.pythonVersion }}
+          includeFlake: ${{ parameters.includeFlake }}
+          includeClaudeSkills: ${{ parameters.includeClaudeSkills }}
+          destination: ${{ parameters.repoUrl | parseRepoUrl }}
+
+    - id: publish
+      name: Create GitHub repo + push
+      action: publish:github
+      input:
+        description: ${{ parameters.description }}
+        repoUrl: ${{ parameters.repoUrl }}
+        defaultBranch: main
+        repoVisibility: public
+        protectDefaultBranch: false
+
+    - id: register
+      name: Register in Backstage catalog
+      action: catalog:register
+      input:
+        repoContentsUrl: ${{ steps['publish'].output.repoContentsUrl }}
+        catalogInfoPath: /catalog-info.yaml
+
+  output:
+    links:
+      - title: Repository
+        url: ${{ steps['publish'].output.remoteUrl }}
+      - title: Open in Backstage
+        icon: catalog
+        entityRef: ${{ steps['register'].output.entityRef }}

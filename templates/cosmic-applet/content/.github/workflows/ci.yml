@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: "-D warnings"
+
+jobs:
+  nix-build:
+    name: nix build (canonical)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DeterminateSystems/nix-installer-action@v14
+      - uses: DeterminateSystems/magic-nix-cache-action@v8
+      - name: nix flake check
+        run: nix flake check --no-build
+      - name: nix build
+        run: nix build .#default --print-build-logs
+
+  clippy-test:
+    name: clippy + test
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DeterminateSystems/nix-installer-action@v14
+      - uses: DeterminateSystems/magic-nix-cache-action@v8
+      - name: clippy
+        run: nix develop --command cargo clippy --all-targets --all-features -- -D warnings
+      - name: fmt
+        run: nix develop --command cargo fmt --all --check
+      - name: test
+        run: nix develop --command cargo test --all-features
+
+  audit:
+    name: cargo audit
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions-rust-lang/audit@v1
+        with:
+          token: ${{ '${{' }} secrets.GITHUB_TOKEN {{ '}}' }}

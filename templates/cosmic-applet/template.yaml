@@ -1,0 +1,146 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: cosmic-applet
+  title: COSMIC Desktop Applet (libcosmic + flake)
+  description: |
+    Rust libcosmic applet skeleton matching the cosmic-ext-* pattern:
+    - libcosmic (Pop_OS COSMIC desktop framework, built on Iced 0.13)
+    - Tray icon + popup window with idiomatic Iced/cosmic ECS message handling
+    - Polls a backend command on a 5s timer and renders the result in the popup
+    - Nix flake with rust-overlay; package builds via rustPlatform.buildRustPackage
+    - GitHub Actions CI: nix build, cargo clippy, cargo test, cargo audit
+    - mkdocs.yml + docs/ wired for Backstage TechDocs
+    - AGENTS.md + .claude/skills for AI coding assistants
+    - Pre-configured catalog-info.yaml (type: tool, NO API entity — desktop app, not HTTP)
+  tags:
+    - rust
+    - cosmic
+    - desktop
+    - applet
+    - nix
+spec:
+  owner: olafkfreund
+  type: tool
+
+  parameters:
+    - title: Project basics
+      required:
+        - name
+        - description
+        - owner
+      properties:
+        name:
+          title: Name
+          type: string
+          description: lowercase, hyphen-separated. Used as crate name AND repo name. Convention is cosmic-ext-applet-<thing>.
+          pattern: '^[a-z0-9-]+$'
+          ui:autofocus: true
+        description:
+          title: Description
+          type: string
+          description: One-line summary (<100 chars). Goes into Cargo.toml + catalog.
+          maxLength: 100
+        owner:
+          title: Owner
+          type: string
+          description: User or Group entity that owns the new applet.
+          default: olafkfreund
+          ui:field: OwnerPicker
+          ui:options:
+            catalogFilter:
+              kind: [Group, User]
+        system:
+          title: System (optional)
+          type: string
+          description: System this applet belongs to.
+          default: freundcloud-infra
+
+    - title: Applet options
+      properties:
+        appletId:
+          title: Applet ID (reverse-DNS)
+          type: string
+          description: Reverse-DNS identifier used as the COSMIC applet ID. Must be globally unique.
+          default: com.freundcloud.CosmicApplet
+          pattern: '^[A-Za-z][A-Za-z0-9_]*(\.[A-Za-z][A-Za-z0-9_]*)+$'
+        pollIntervalSeconds:
+          title: Poll interval (seconds)
+          type: integer
+          description: How often the applet polls the backend command and refreshes the popup.
+          default: 5
+          minimum: 1
+          maximum: 3600
+        backendCommand:
+          title: Backend command
+          type: string
+          description: Shell command whose stdout is rendered in the popup. Example default shows uptime.
+          default: uptime
+        includeFlake:
+          title: Include flake.nix
+          type: boolean
+          default: true
+          description: Adds Nix flake + .envrc for reproducible dev/build (recommended for libcosmic).
+        includeClaudeSkills:
+          title: Include AGENTS.md + .claude/ skills
+          type: boolean
+          default: true
+          description: AI coding-assistant guidance specific to libcosmic applets.
+
+    - title: Where to publish
+      required:
+        - repoUrl
+      properties:
+        repoUrl:
+          title: Repository
+          type: string
+          ui:field: RepoUrlPicker
+          ui:options:
+            allowedHosts:
+              - github.com
+            allowedOwners:
+              - olafkfreund
+              - Freundcloud
+
+  steps:
+    - id: fetch
+      name: Fetch skeleton + template variables
+      action: fetch:template
+      input:
+        url: ./content
+        values:
+          name: ${{ parameters.name }}
+          description: ${{ parameters.description }}
+          owner: ${{ parameters.owner }}
+          system: ${{ parameters.system }}
+          appletId: ${{ parameters.appletId }}
+          pollIntervalSeconds: ${{ parameters.pollIntervalSeconds }}
+          backendCommand: ${{ parameters.backendCommand }}
+          includeFlake: ${{ parameters.includeFlake }}
+          includeClaudeSkills: ${{ parameters.includeClaudeSkills }}
+          destination: ${{ parameters.repoUrl | parseRepoUrl }}
+
+    - id: publish
+      name: Create GitHub repo + push
+      action: publish:github
+      input:
+        description: ${{ parameters.description }}
+        repoUrl: ${{ parameters.repoUrl }}
+        defaultBranch: main
+        repoVisibility: public
+        protectDefaultBranch: false
+
+    - id: register
+      name: Register in Backstage catalog
+      action: catalog:register
+      input:
+        repoContentsUrl: ${{ steps['publish'].output.repoContentsUrl }}
+        catalogInfoPath: /catalog-info.yaml
+
+  output:
+    links:
+      - title: Repository
+        url: ${{ steps['publish'].output.remoteUrl }}
+      - title: Open in Backstage
+        icon: catalog
+        entityRef: ${{ steps['register'].output.entityRef }}

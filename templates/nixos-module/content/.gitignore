@@ -1,0 +1,19 @@
+# Nix
+/result
+/result-*
+.direnv/
+
+# Editors
+.envrc.local
+*.swp
+*.swo
+.idea/
+.vscode/
+
+# Secrets — never commit decrypted material
+*.age.dec
+secrets/decrypted/
+
+# OS
+.DS_Store
+Thumbs.db

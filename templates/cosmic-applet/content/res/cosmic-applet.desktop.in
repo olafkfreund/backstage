@@ -1,0 +1,13 @@
+[Desktop Entry]
+Name=${{ values.name }}
+GenericName=COSMIC Applet
+Comment=${{ values.description }}
+Categories=COSMIC;Utility;
+Type=Application
+Exec=${{ values.name }}
+Icon=utilities-terminal-symbolic
+Terminal=false
+StartupNotify=false
+NoDisplay=true
+X-CosmicApplet=true
+X-CosmicAppletId=${{ values.appletId }}

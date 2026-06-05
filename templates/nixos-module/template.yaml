@@ -1,0 +1,142 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: nixos-module
+  title: NixOS Module (flake-based service module + agenix-ready)
+  description: |
+    Standalone NixOS module skeleton — NOT a runnable service, a library consumed by other NixOS configurations.
+
+    Ships:
+    - flake.nix exposing `outputs.nixosModules.<name>` consumable from any flake
+    - module.nix with `features.<name>.{enable,package,user,group,port,storageDir,settings,...}` options
+    - Full systemd hardening boilerplate (DynamicUser, ProtectSystem=strict, NoNewPrivileges, SystemCallFilter, ...)
+    - agenix secret slots (passwordFile / envFile patterns) gated behind `mkIf cfg.enable`
+    - Tailscale Serve route example for zero-firewall exposure inside the tailnet
+    - example/configuration.nix showing how a consumer imports + enables the module
+    - GitHub Actions CI: `nix flake check`, statix, deadnix, nixpkgs-fmt --check
+    - AGENTS.md + .claude/skills/add-option.md for AI coding assistants
+    - Backstage catalog-info.yaml registers as kind: Component, spec.type: library
+  tags:
+    - nixos
+    - infrastructure
+    - module
+    - nix
+    - library
+spec:
+  owner: olafkfreund
+  type: service
+
+  parameters:
+    - title: Project basics
+      required:
+        - name
+        - description
+        - owner
+      properties:
+        name:
+          title: Module name
+          type: string
+          description: lowercase, hyphen-separated. Used as the module attr (`nixosModules.<name>`), the option namespace (`features.<name>`), and the repo name.
+          pattern: '^[a-z][a-z0-9-]*$'
+          ui:autofocus: true
+        description:
+          title: Description
+          type: string
+          description: One-line summary (<120 chars). Goes into flake description + catalog-info.
+          maxLength: 120
+        owner:
+          title: Owner
+          type: string
+          description: User or Group entity that owns this module.
+          default: olafkfreund
+          ui:field: OwnerPicker
+          ui:options:
+            catalogFilter:
+              kind: [Group, User]
+        system:
+          title: System (optional)
+          type: string
+          description: Backstage System this module belongs to.
+          default: freundcloud-infra
+
+    - title: Module defaults
+      properties:
+        defaultPort:
+          title: Default listening port
+          type: integer
+          description: Default value for `features.<name>.port`. Consumers can override.
+          default: 8080
+          minimum: 1
+          maximum: 65535
+        defaultUser:
+          title: Default service user
+          type: string
+          description: Used when DynamicUser is disabled. Default keeps DynamicUser=true.
+          default: ''
+        includeAgenix:
+          title: Include agenix secret slots
+          type: boolean
+          description: Adds `passwordFile` / `envFile` options + commented age.secrets template.
+          default: true
+        includeTailscaleServe:
+          title: Include Tailscale Serve example
+          type: boolean
+          description: Adds a `tailscale.serve` snippet in the README + example/configuration.nix.
+          default: true
+
+    - title: Where to publish
+      required:
+        - repoUrl
+      properties:
+        repoUrl:
+          title: Repository
+          type: string
+          ui:field: RepoUrlPicker
+          ui:options:
+            allowedHosts:
+              - github.com
+            allowedOwners:
+              - olafkfreund
+              - Freundcloud
+
+  steps:
+    - id: fetch
+      name: Fetch skeleton + template variables
+      action: fetch:template
+      input:
+        url: ./content
+        values:
+          name: ${{ parameters.name }}
+          description: ${{ parameters.description }}
+          owner: ${{ parameters.owner }}
+          system: ${{ parameters.system }}
+          defaultPort: ${{ parameters.defaultPort }}
+          defaultUser: ${{ parameters.defaultUser }}
+          includeAgenix: ${{ parameters.includeAgenix }}
+          includeTailscaleServe: ${{ parameters.includeTailscaleServe }}
+          destination: ${{ parameters.repoUrl | parseRepoUrl }}
+
+    - id: publish
+      name: Create GitHub repo + push
+      action: publish:github
+      input:
+        description: ${{ parameters.description }}
+        repoUrl: ${{ parameters.repoUrl }}
+        defaultBranch: main
+        repoVisibility: public
+        protectDefaultBranch: false
+
+    - id: register
+      name: Register in Backstage catalog
+      action: catalog:register
+      input:
+        repoContentsUrl: ${{ steps['publish'].output.repoContentsUrl }}
+        catalogInfoPath: /catalog-info.yaml
+
+  output:
+    links:
+      - title: Repository
+        url: ${{ steps['publish'].output.remoteUrl }}
+      - title: Open in Backstage
+        icon: catalog
+        entityRef: ${{ steps['register'].output.entityRef }}
