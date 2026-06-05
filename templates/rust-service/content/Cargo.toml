@@ -1,0 +1,26 @@
+[package]
+name = "${{ values.name }}"
+version = "0.1.0"
+edition = "2021"
+description = "${{ values.description }}"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/${{ values.destination.owner }}/${{ values.destination.repo }}"
+
+[dependencies]
+axum = "0.8"
+tokio = { version = "1", features = ["full"] }
+tower = "0.5"
+tower-http = { version = "0.6", features = ["trace", "cors"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+utoipa = { version = "5", features = ["axum_extras"] }
+utoipa-axum = "0.2"
+utoipa-swagger-ui = { version = "9", features = ["axum"] }
+anyhow = "1"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = "symbols"

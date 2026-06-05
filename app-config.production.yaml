@@ -138,6 +138,14 @@ catalog:
       target: https://github.com/olafkfreund/nixos_config/blob/main/catalog-info.yaml
       rules:
         - allow: [Component, System, User, Group]
+
+    # Software templates — register each template.yaml as a Location so it
+    # appears in the Scaffolder (/create) UI. Skeletons live alongside in
+    # templates/<name>/content/ and are fetched at scaffold time.
+    - type: url
+      target: https://github.com/olafkfreund/backstage/blob/main/templates/rust-service/template.yaml
+      rules:
+        - allow: [Template]
   providers:
     # GitHubEntityProvider scans olafkfreund's repos and ingests every
     # `catalog-info.yaml` it finds. Repos without one are silent — the
