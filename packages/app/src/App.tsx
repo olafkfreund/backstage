@@ -4,6 +4,7 @@ import { navModule } from './modules/nav';
 import { signInPageModule } from './modules/signInPage';
 import { homePageModule } from './modules/home';
 import { themeModule } from './modules/theme';
+import gitlabPlugin from '@immobiliarelabs/backstage-plugin-gitlab/alpha';
 
 // Note: plugin-github-actions / -github-pull-requests / -security-insights
 // were tried as entity tabs via EntityContentBlueprint + convertLegacyPlugin
@@ -20,5 +21,6 @@ export default createApp({
     signInPageModule,
     homePageModule,
     themeModule,
+    gitlabPlugin,
   ],
 });

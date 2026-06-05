@@ -211,3 +211,20 @@ catalog:
         schedule:
           frequency: { hours: 1 }
           timeout: { minutes: 3 }
+    # GitlabDiscoveryEntityProvider — scans gitlab.com for catalog-info.yaml
+    # files. group="" + project="" means: scan everything the configured
+    # GITLAB_TOKEN can see. Narrow by setting `group: my-group` once you
+    # have actual GitLab projects to onboard. Sits idle (no projects
+    # discovered) if the token has no project access — harmless.
+    gitlab:
+      olafkfreundGitlab:
+        host: gitlab.com
+        branch: main
+        fallbackBranch: master
+        catalogFile: catalog-info.yaml
+        # No `group` set → searches all accessible projects.
+        # Set this to your group slug when you have GitLab projects to onboard.
+        # group: my-group
+        schedule:
+          frequency: { hours: 1 }
+          timeout: { minutes: 3 }

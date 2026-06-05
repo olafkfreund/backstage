@@ -16,6 +16,7 @@ backend.add(import('@backstage/plugin-proxy-backend'));
 // scaffolder plugin
 backend.add(import('@backstage/plugin-scaffolder-backend'));
 backend.add(import('@backstage/plugin-scaffolder-backend-module-github'));
+backend.add(import('@backstage/plugin-scaffolder-backend-module-gitlab'));
 backend.add(
   import('@backstage/plugin-scaffolder-backend-module-notifications'),
 );
@@ -41,6 +42,12 @@ backend.add(
 // repos that don't have it yet. Provider config lives in
 // app-config.production.yaml under catalog.providers.github.
 backend.add(import('@backstage/plugin-catalog-backend-module-github'));
+
+// GitLab discovery: scans the configured gitlab.com group/path for
+// catalog-info.yaml. Requires backstage-gitlab-token agenix secret.
+// Provider config lives in app-config.production.yaml under
+// catalog.providers.gitlab.
+backend.add(import('@backstage/plugin-catalog-backend-module-gitlab'));
 
 // See https://backstage.io/docs/features/software-catalog/configuration#subscribing-to-catalog-errors
 backend.add(import('@backstage/plugin-catalog-backend-module-logs'));
