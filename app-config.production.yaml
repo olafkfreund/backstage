@@ -10,6 +10,17 @@ backend:
     origin: ${BACKSTAGE_PUBLIC_URL}
     methods: [GET, HEAD, PATCH, POST, PUT, DELETE]
     credentials: true
+  csp:
+    # Backstage / Helmet defaults block external images, so README badges
+    # (shields.io, github.com action badges) and embedded screenshots
+    # (raw.githubusercontent.com) appear as broken-image alt text in the
+    # github-insights and Catalog README cards. Permissive img-src lets
+    # any https image load — for a single-user home lab the tradeoff
+    # (a malicious README could embed a tracking pixel) is acceptable.
+    # connect-src kept permissive so plugins that fetch external APIs
+    # (security-insights, github-actions) keep working.
+    connect-src: ["'self'", 'http:', 'https:']
+    img-src: ["'self'", 'data:', 'https:']
   database:
     client: pg
     connection:
