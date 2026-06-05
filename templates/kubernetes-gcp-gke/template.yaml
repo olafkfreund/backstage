@@ -1,0 +1,163 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: kubernetes-gcp-gke
+  title: Kubernetes on GCP GKE (Terraform + Helm + devenv + flake)
+  description: |
+    Provision a production-grade GKE cluster (Autopilot or Standard) on Google Cloud
+    using Terraform, bootstrap with a Helm baseline (Traefik + cert-manager), deploy
+    a Workload-Identity-bound example app, and ship a reproducible devenv-powered
+    Nix flake dev shell plus CI.
+  tags:
+    - kubernetes
+    - gke
+    - gcp
+    - terraform
+    - helm
+    - devenv
+    - nix
+spec:
+  owner: olafkfreund
+  type: service
+
+  parameters:
+    - title: Project metadata
+      required:
+        - name
+        - description
+        - owner
+      properties:
+        name:
+          title: Name
+          type: string
+          description: Unique name for this component (used for repo, cluster suffix, k8s namespace)
+          pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
+          maxLength: 30
+          ui:autofocus: true
+        description:
+          title: Description
+          type: string
+          description: What does this platform do?
+        owner:
+          title: Owner
+          type: string
+          description: Owning group
+          ui:field: EntityPicker
+          ui:options:
+            catalogFilter:
+              kind: Group
+        system:
+          title: System
+          type: string
+          description: System this component belongs to
+          ui:field: EntityPicker
+          ui:options:
+            catalogFilter:
+              kind: System
+
+    - title: GCP configuration
+      required:
+        - gcpProject
+        - gcpRegion
+        - clusterName
+        - gkeMode
+      properties:
+        gcpProject:
+          title: GCP Project ID
+          type: string
+          description: Target Google Cloud project ID (must already exist with billing enabled)
+          pattern: '^[a-z][a-z0-9-]{4,28}[a-z0-9]$'
+        gcpRegion:
+          title: GCP Region
+          type: string
+          description: Region for the GKE cluster
+          default: us-central1
+          enum:
+            - us-central1
+            - us-east1
+            - us-east4
+            - us-west1
+            - us-west2
+            - europe-west1
+            - europe-west2
+            - europe-west3
+            - europe-west4
+            - europe-north1
+            - asia-east1
+            - asia-northeast1
+            - asia-southeast1
+            - australia-southeast1
+        clusterName:
+          title: GKE cluster name
+          type: string
+          description: Name of the GKE cluster (defaults to <name>-gke)
+          default: ${{ parameters.name }}-gke
+          pattern: '^[a-z][a-z0-9-]{1,38}[a-z0-9]$'
+        gkeMode:
+          title: GKE mode
+          type: string
+          description: Autopilot (fully managed nodes) or Standard (full control over node pools)
+          default: autopilot
+          enum:
+            - autopilot
+            - standard
+          enumNames:
+            - 'Autopilot (recommended, hands-off node management)'
+            - 'Standard (managed node pools, custom machine types)'
+
+    - title: Destination
+      required:
+        - destination
+      properties:
+        destination:
+          title: Repository location
+          type: string
+          ui:field: RepoUrlPicker
+          ui:options:
+            allowedHosts:
+              - github.com
+
+  steps:
+    - id: fetch
+      name: Fetch skeleton
+      action: fetch:template
+      input:
+        url: ./content
+        values:
+          name: ${{ parameters.name }}
+          description: ${{ parameters.description }}
+          owner: ${{ parameters.owner }}
+          system: ${{ parameters.system }}
+          gcpProject: ${{ parameters.gcpProject }}
+          gcpRegion: ${{ parameters.gcpRegion }}
+          clusterName: ${{ parameters.clusterName }}
+          gkeMode: ${{ parameters.gkeMode }}
+          destination: ${{ parameters.destination }}
+
+    - id: publish
+      name: Publish to GitHub
+      action: publish:github
+      input:
+        description: ${{ parameters.description }}
+        repoUrl: ${{ parameters.destination }}
+        defaultBranch: main
+        protectDefaultBranch: false
+        repoVisibility: private
+
+    - id: register
+      name: Register in catalog
+      action: catalog:register
+      input:
+        repoContentsUrl: ${{ steps.publish.output.repoContentsUrl }}
+        catalogInfoPath: /catalog-info.yaml
+
+  output:
+    links:
+      - title: Open in catalog
+        icon: catalog
+        entityRef: ${{ steps.register.output.entityRef }}
+      - title: Open repository
+        icon: github
+        url: ${{ steps.publish.output.remoteUrl }}
+    entityRef: ${{ steps.register.output.entityRef }}
+    remoteUrl: ${{ steps.publish.output.remoteUrl }}

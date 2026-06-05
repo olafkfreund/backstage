@@ -1,0 +1,29 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: example-app
+  namespace: example
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+  labels:
+    app.kubernetes.io/name: example-app
+    app.kubernetes.io/part-of: ${{ values.name }}
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - example.${{ values.name }}.example.com
+      secretName: example-app-tls
+  rules:
+    - host: example.${{ values.name }}.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: example-app
+                port:
+                  number: 80

@@ -1,0 +1,79 @@
+# ${{ values.name }} — task runner
+
+set shell := ["bash", "-euo", "pipefail", "-c"]
+
+AWS_REGION   := "${{ values.awsRegion }}"
+CLUSTER_NAME := "${{ values.clusterName }}"
+INFRA_DIR    := "infra"
+CHART_DIR    := "charts/baseline"
+APPS_DIR     := "apps"
+
+# Default: list tasks
+default:
+    @just --list
+
+# --- Terraform -----------------------------------------------------------
+
+init:
+    cd {{INFRA_DIR}} && terraform init
+
+fmt:
+    terraform fmt -recursive {{INFRA_DIR}}
+
+validate: init
+    cd {{INFRA_DIR}} && terraform validate
+
+plan: init
+    cd {{INFRA_DIR}} && terraform plan -out=tf.plan
+
+apply: init
+    cd {{INFRA_DIR}} && terraform apply tf.plan
+
+# Configure local kubectl to talk to the new cluster
+kubeconfig:
+    aws eks update-kubeconfig \
+      --region {{AWS_REGION}} \
+      --name {{CLUSTER_NAME}} \
+      --alias {{CLUSTER_NAME}}
+    kubectl config use-context {{CLUSTER_NAME}}
+    kubectl get nodes
+
+# --- Helm baseline -------------------------------------------------------
+
+helm-deps:
+    helm dependency update {{CHART_DIR}}
+
+helm-lint: helm-deps
+    helm lint {{CHART_DIR}}
+
+# Install / upgrade the baseline stack (Traefik + cert-manager + ClusterIssuer)
+install-baseline: helm-deps
+    kubectl create namespace cert-manager --dry-run=client -o yaml | kubectl apply -f -
+    kubectl create namespace traefik      --dry-run=client -o yaml | kubectl apply -f -
+    helm upgrade --install baseline {{CHART_DIR}} \
+      --namespace kube-system \
+      --create-namespace \
+      --wait \
+      --timeout 10m
+
+# --- Example app ---------------------------------------------------------
+
+deploy-example:
+    kubectl create namespace example --dry-run=client -o yaml | kubectl apply -f -
+    kubectl apply -n example -f {{APPS_DIR}}/example/
+    kubectl -n example rollout status deployment/example --timeout=120s
+
+undeploy-example:
+    kubectl delete -n example -f {{APPS_DIR}}/example/ --ignore-not-found
+
+# --- Destroy -------------------------------------------------------------
+
+# Tear it ALL down. Deletes LoadBalancer services first to unblock VPC destroy.
+destroy:
+    @echo "!!! Destroying cluster {{CLUSTER_NAME}} in {{AWS_REGION}} !!!"
+    @echo "You have 5 seconds to Ctrl-C..."
+    @sleep 5
+    - kubectl get svc --all-namespaces -o json \
+        | jq -r '.items[] | select(.spec.type=="LoadBalancer") | "\(.metadata.namespace) \(.metadata.name)"' \
+        | while read ns name; do kubectl -n "$ns" delete svc "$name" --wait=true; done
+    cd {{INFRA_DIR}} && terraform destroy -auto-approve

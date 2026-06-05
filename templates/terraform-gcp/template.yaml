@@ -1,0 +1,165 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: terraform-gcp
+  title: Terraform for GCP (devenv + flake)
+  description: |
+    Scaffold a Terraform 1.9+ project targeting Google Cloud Platform with a
+    GCS remote backend, a reproducible Nix devShell powered by devenv, and a
+    CI pipeline that runs fmt/validate/tflint via `nix flake check`.
+  tags:
+    - terraform
+    - gcp
+    - infrastructure
+    - iac
+    - nix
+    - devenv
+spec:
+  owner: olafkfreund
+  type: service
+
+  parameters:
+    - title: Project metadata
+      required:
+        - name
+        - description
+        - owner
+      properties:
+        name:
+          title: Name
+          type: string
+          description: Unique name for this Terraform project (kebab-case)
+          pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$'
+          maxLength: 40
+          ui:autofocus: true
+          ui:help: Lowercase letters, digits and hyphens. Used for repo name, state bucket prefix, and component name.
+        description:
+          title: Description
+          type: string
+          description: Short summary of what this Terraform project manages
+        owner:
+          title: Owner
+          type: string
+          description: Owning group in the Backstage catalog
+          ui:field: EntityPicker
+          ui:options:
+            catalogFilter:
+              kind: Group
+        system:
+          title: System
+          type: string
+          description: System this component belongs to (optional)
+          ui:field: EntityPicker
+          ui:options:
+            catalogFilter:
+              kind: System
+
+    - title: GCP configuration
+      required:
+        - gcpProject
+        - gcpRegion
+        - stateBucket
+      properties:
+        gcpProject:
+          title: GCP Project ID
+          type: string
+          description: The Google Cloud project ID Terraform will target
+          pattern: '^[a-z][a-z0-9-]{4,28}[a-z0-9]$'
+          ui:help: GCP project IDs must be 6-30 chars, start with a letter, lowercase letters/digits/hyphens only.
+        gcpRegion:
+          title: GCP Region
+          type: string
+          description: Default region for regional resources
+          default: us-central1
+          enum:
+            - us-central1
+            - us-east1
+            - us-east4
+            - us-east5
+            - us-west1
+            - us-west2
+            - us-west3
+            - us-west4
+            - northamerica-northeast1
+            - southamerica-east1
+            - europe-west1
+            - europe-west2
+            - europe-west3
+            - europe-west4
+            - europe-west6
+            - europe-west9
+            - europe-north1
+            - asia-east1
+            - asia-east2
+            - asia-northeast1
+            - asia-northeast2
+            - asia-northeast3
+            - asia-south1
+            - asia-southeast1
+            - asia-southeast2
+            - australia-southeast1
+        stateBucket:
+          title: State bucket name
+          type: string
+          description: GCS bucket that will hold Terraform state (must be globally unique)
+          default: ${{ parameters.name }}-tfstate
+          pattern: '^[a-z0-9][a-z0-9-_.]{1,61}[a-z0-9]$'
+          ui:help: GCS bucket names must be globally unique across all of GCP.
+
+    - title: Repository location
+      required:
+        - destination
+      properties:
+        destination:
+          title: Destination repository
+          type: string
+          description: Where the new repository will be created on GitHub
+          ui:field: RepoUrlPicker
+          ui:options:
+            allowedHosts:
+              - github.com
+
+  steps:
+    - id: fetch
+      name: Fetch skeleton
+      action: fetch:template
+      input:
+        url: ./content
+        copyWithoutTemplating:
+          - .github/workflows/*
+        values:
+          name: ${{ parameters.name }}
+          description: ${{ parameters.description }}
+          owner: ${{ parameters.owner }}
+          system: ${{ parameters.system }}
+          gcpProject: ${{ parameters.gcpProject }}
+          gcpRegion: ${{ parameters.gcpRegion }}
+          stateBucket: ${{ parameters.stateBucket }}
+          destination: ${{ parameters.destination | parseRepoUrl }}
+
+    - id: publish
+      name: Publish to GitHub
+      action: publish:github
+      input:
+        description: ${{ parameters.description }}
+        repoUrl: ${{ parameters.destination }}
+        defaultBranch: main
+        protectDefaultBranch: false
+        repoVisibility: private
+
+    - id: register
+      name: Register in Catalog
+      action: catalog:register
+      input:
+        repoContentsUrl: ${{ steps.publish.output.repoContentsUrl }}
+        catalogInfoPath: /catalog-info.yaml
+
+  output:
+    links:
+      - title: Source repository
+        url: ${{ steps.publish.output.remoteUrl }}
+      - title: Open in catalog
+        icon: catalog
+        entityRef: ${{ steps.register.output.entityRef }}
+    entityRef: ${{ steps.register.output.entityRef }}
+    remoteUrl: ${{ steps.publish.output.remoteUrl }}

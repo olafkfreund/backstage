@@ -17,11 +17,16 @@ import { NotificationsSidebarItem } from '@backstage/plugin-notifications';
 export const SidebarContent = NavContentBlueprint.make({
   params: {
     component: ({ navItems }) => {
-      // Deep-link the Catalog Graph sidebar item to a default root entity
-      // so clicking it lands on a populated graph instead of a blank
-      // canvas. Title + icon from the plugin are preserved.
-      const CATALOG_GRAPH_HREF =
-        '/catalog-graph?rootEntityRefs=user:default/olafkfreund&maxDepth=2';
+      // Deep-link Catalog Graph to a default root entity. The catalog-graph
+      // page uses `qs` to parse, and only reads `rootEntityRefs` if it's
+      // already an array — so the URL must use the `?key[]=value` form,
+      // NOT `?key=value` (which parses as a string and gets ignored).
+      // Pick a Group ref because Group is in the default kinds filter
+      // (User isn't always) and "group:default/olafkfreund" owns 79
+      // components, so the graph populates richly at maxDepth=2.
+      const CATALOG_GRAPH_HREF = `/catalog-graph?rootEntityRefs%5B%5D=${encodeURIComponent(
+        'group:default/olafkfreund',
+      )}&maxDepth=2`;
 
       const nav = navItems.withComponent(item => (
         <SidebarItem

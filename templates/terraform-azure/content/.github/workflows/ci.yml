@@ -1,0 +1,68 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ '${{' }} github.ref {{ '}}' }}
+  cancel-in-progress: true
+
+jobs:
+  flake-check:
+    name: nix flake check (fmt + validate + tflint)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v16
+        with:
+          extra-conf: |
+            accept-flake-config = true
+
+      - name: Magic Nix cache
+        uses: DeterminateSystems/magic-nix-cache-action@v8
+
+      - name: nix flake check
+        run: nix flake check --print-build-logs
+
+      - name: terraform fmt -check
+        run: nix develop --command terraform fmt -check -recursive
+
+      - name: terraform init (no backend)
+        run: nix develop --command terraform init -backend=false
+
+      - name: terraform validate
+        run: nix develop --command terraform validate
+
+      - name: tflint --init
+        run: nix develop --command tflint --init
+
+      - name: tflint
+        run: nix develop --command tflint --recursive
+
+      - name: backend-bootstrap validate
+        run: |
+          nix develop --command bash -c '
+            cd backend-bootstrap
+            terraform init -backend=false
+            terraform validate
+            terraform fmt -check -recursive
+          '
+
+# TODO: Once Azure OIDC federated identity is configured for this repo,
+# add a `plan` job that authenticates via azure/login@v2 and runs
+# `terraform plan -out tfplan` against the real backend, then uploads the
+# plan as an artifact and (optionally) comments it on the PR.
+#
+# Required setup (see AGENTS.md):
+#   1. App Registration in Entra ID
+#   2. Federated credential: repo:OWNER/REPO:ref:refs/heads/main
+#   3. RBAC: least-privilege role on subscription/RG
+#   4. Repo secrets: AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID
+#   5. Workflow permissions: id-token: write, contents: read

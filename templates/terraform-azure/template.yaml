@@ -1,0 +1,167 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: terraform-azure
+  title: Terraform for Azure (devenv + flake)
+  description: |
+    Production-ready Terraform scaffold targeting Microsoft Azure.
+    Includes AzureRM remote state backend, devenv-powered Nix flake
+    development shell, GitHub Actions CI, TechDocs, and AGENTS.md
+    conventions for AI assistants.
+  tags:
+    - terraform
+    - azure
+    - infrastructure
+    - iac
+    - devenv
+    - nix
+  annotations:
+    backstage.io/techdocs-ref: dir:.
+spec:
+  owner: olafkfreund
+  type: service
+
+  parameters:
+    - title: Project information
+      required:
+        - name
+        - description
+        - owner
+      properties:
+        name:
+          title: Name
+          type: string
+          description: Unique name for the Terraform stack (lowercase, hyphens). Used for repo name and Azure resource naming.
+          pattern: '^[a-z][a-z0-9-]{1,38}[a-z0-9]$'
+          ui:autofocus: true
+          ui:help: "Lowercase letters, digits, and hyphens. 3-40 characters."
+        description:
+          title: Description
+          type: string
+          description: What does this Terraform stack manage?
+        owner:
+          title: Owner
+          type: string
+          description: Team or group that owns this stack.
+          ui:field: EntityPicker
+          ui:options:
+            catalogFilter:
+              kind:
+                - Group
+        system:
+          title: System
+          type: string
+          description: System this stack belongs to (optional).
+          ui:field: EntityPicker
+          ui:options:
+            catalogFilter:
+              kind:
+                - System
+
+    - title: Azure configuration
+      required:
+        - azureSubscriptionId
+        - azureLocation
+        - stateRG
+        - stateStorageAccount
+      properties:
+        azureSubscriptionId:
+          title: Azure subscription ID
+          type: string
+          description: GUID of the Azure subscription this stack deploys into.
+          pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
+        azureLocation:
+          title: Azure region
+          type: string
+          description: Primary Azure region for resources.
+          default: uksouth
+          enum:
+            - uksouth
+            - ukwest
+            - westeurope
+            - northeurope
+            - eastus
+            - eastus2
+            - westus2
+            - westus3
+            - centralus
+            - southeastasia
+            - australiaeast
+          enumNames:
+            - UK South
+            - UK West
+            - West Europe
+            - North Europe
+            - East US
+            - East US 2
+            - West US 2
+            - West US 3
+            - Central US
+            - Southeast Asia
+            - Australia East
+        stateRG:
+          title: State resource group
+          type: string
+          description: Resource group that holds the Terraform state storage account.
+          default: ${{ parameters.name }}-tfstate-rg
+        stateStorageAccount:
+          title: State storage account
+          type: string
+          description: Globally-unique storage account name for tfstate (3-24 chars, lowercase alphanumeric).
+          pattern: '^[a-z0-9]{3,24}$'
+
+    - title: Repository location
+      required:
+        - destination
+      properties:
+        destination:
+          title: Repository location
+          type: string
+          description: GitHub repository to create for this stack.
+          ui:field: RepoUrlPicker
+          ui:options:
+            allowedHosts:
+              - github.com
+
+  steps:
+    - id: fetch
+      name: Fetch skeleton
+      action: fetch:template
+      input:
+        url: ./content
+        values:
+          name: ${{ parameters.name }}
+          description: ${{ parameters.description }}
+          owner: ${{ parameters.owner }}
+          system: ${{ parameters.system }}
+          azureSubscriptionId: ${{ parameters.azureSubscriptionId }}
+          azureLocation: ${{ parameters.azureLocation }}
+          stateRG: ${{ parameters.stateRG }}
+          stateStorageAccount: ${{ parameters.stateStorageAccount }}
+          destination: ${{ parameters.destination }}
+
+    - id: publish
+      name: Publish to GitHub
+      action: publish:github
+      input:
+        description: ${{ parameters.description }}
+        repoUrl: ${{ parameters.destination }}
+        defaultBranch: main
+
+    - id: register
+      name: Register in catalog
+      action: catalog:register
+      input:
+        repoContentsUrl: ${{ steps.publish.output.repoContentsUrl }}
+        catalogInfoPath: /catalog-info.yaml
+
+  output:
+    links:
+      - title: Source repository
+        url: ${{ steps.publish.output.remoteUrl }}
+        icon: github
+      - title: Open in catalog
+        icon: catalog
+        entityRef: ${{ steps.register.output.entityRef }}
+    entityRef: ${{ steps.register.output.entityRef }}
+    remoteUrl: ${{ steps.publish.output.remoteUrl }}

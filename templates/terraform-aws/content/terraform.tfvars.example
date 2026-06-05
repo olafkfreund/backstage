@@ -1,0 +1,11 @@
+# Copy to terraform.tfvars and edit. DO NOT commit terraform.tfvars.
+
+project_name = "${{ values.name }}"
+environment  = "dev"
+aws_region   = "${{ values.awsRegion }}"
+vpc_cidr     = "10.0.0.0/16"
+
+additional_tags = {
+  CostCenter = "platform"
+  Team       = "${{ values.owner }}"
+}

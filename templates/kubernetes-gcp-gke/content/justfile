@@ -1,0 +1,100 @@
+# justfile for ${{ values.name }}
+# Run `just --list` to see all tasks.
+
+set shell := ["bash", "-euo", "pipefail", "-c"]
+
+project := "${{ values.gcpProject }}"
+region  := "${{ values.gcpRegion }}"
+cluster := "${{ values.clusterName }}"
+mode    := "${{ values.gkeMode }}"
+
+default:
+    @just --list
+
+# ---- GCP bootstrap -------------------------------------------------------
+
+# Enable all GCP APIs this repo needs (idempotent).
+gcp-bootstrap:
+    gcloud --project={{project}} services enable \
+      compute.googleapis.com \
+      container.googleapis.com \
+      iam.googleapis.com \
+      iamcredentials.googleapis.com \
+      cloudresourcemanager.googleapis.com \
+      serviceusage.googleapis.com \
+      artifactregistry.googleapis.com
+
+# ---- Terraform -----------------------------------------------------------
+
+tf-init:
+    cd infra && terraform init -upgrade
+
+tf-fmt:
+    cd infra && terraform fmt -recursive
+
+tf-fmt-check:
+    cd infra && terraform fmt -recursive -check -diff
+
+tf-validate:
+    cd infra && terraform validate
+
+tf-lint:
+    cd infra && tflint --init && tflint
+
+tf-plan:
+    cd infra && terraform plan -out=tfplan -var="project_id={{project}}" -var="region={{region}}" -var="cluster_name={{cluster}}" -var="gke_mode={{mode}}"
+
+tf-apply:
+    cd infra && terraform apply tfplan
+
+tf-destroy:
+    cd infra && terraform destroy -var="project_id={{project}}" -var="region={{region}}" -var="cluster_name={{cluster}}" -var="gke_mode={{mode}}"
+
+tf-docs:
+    cd infra && terraform-docs markdown table --output-file README.md --output-mode inject .
+
+# ---- kubectl / kube context ---------------------------------------------
+
+kube-creds:
+    gcloud container clusters get-credentials {{cluster}} --region={{region}} --project={{project}}
+
+kube-ctx:
+    kubectx gke_{{project}}_{{region}}_{{cluster}}
+
+# ---- Helm baseline -------------------------------------------------------
+
+helm-lint:
+    helm lint charts/baseline
+
+helm-template:
+    helm template baseline charts/baseline
+
+helm-baseline:
+    helm dependency update charts/baseline
+    helm upgrade --install baseline charts/baseline \
+      --namespace baseline-system --create-namespace \
+      --wait --timeout 10m
+
+# ---- Example app ---------------------------------------------------------
+
+deploy-example:
+    kubectl apply -f apps/example/namespace.yaml
+    kubectl apply -f apps/example/serviceaccount.yaml
+    kubectl apply -f apps/example/deployment.yaml
+    kubectl apply -f apps/example/service.yaml
+    kubectl apply -f apps/example/ingress.yaml
+
+kube-dry-run:
+    kubectl apply --dry-run=client -f apps/example/
+
+kube-dry-run-server:
+    kubectl apply --dry-run=server -f apps/example/
+
+# ---- Convenience ---------------------------------------------------------
+
+lint: tf-fmt-check tf-validate helm-lint
+
+check: lint kube-dry-run
+
+nix-check:
+    nix flake check

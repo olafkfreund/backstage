@@ -1,5 +1,14 @@
 app:
   baseUrl: ${BACKSTAGE_PUBLIC_URL}
+  # Frontend extension config: default the catalog-graph root entity so the
+  # page renders something useful when visited directly (no URL params).
+  # The Sidebar still deep-links with ?rootEntityRefs[]=... when clicked.
+  extensions:
+    - page:catalog-graph:
+        config:
+          rootEntityRefs:
+            - group:default/olafkfreund
+          maxDepth: 2
 
 backend:
   baseUrl: ${BACKSTAGE_PUBLIC_URL}
@@ -160,6 +169,30 @@ catalog:
         - allow: [Template]
     - type: url
       target: https://github.com/olafkfreund/backstage/blob/main/templates/nixos-module/template.yaml
+      rules:
+        - allow: [Template]
+    - type: url
+      target: https://github.com/olafkfreund/backstage/blob/main/templates/terraform-aws/template.yaml
+      rules:
+        - allow: [Template]
+    - type: url
+      target: https://github.com/olafkfreund/backstage/blob/main/templates/terraform-gcp/template.yaml
+      rules:
+        - allow: [Template]
+    - type: url
+      target: https://github.com/olafkfreund/backstage/blob/main/templates/terraform-azure/template.yaml
+      rules:
+        - allow: [Template]
+    - type: url
+      target: https://github.com/olafkfreund/backstage/blob/main/templates/kubernetes-gcp-gke/template.yaml
+      rules:
+        - allow: [Template]
+    - type: url
+      target: https://github.com/olafkfreund/backstage/blob/main/templates/kubernetes-aws-eks/template.yaml
+      rules:
+        - allow: [Template]
+    - type: url
+      target: https://github.com/olafkfreund/backstage/blob/main/templates/kubernetes-azure-aks/template.yaml
       rules:
         - allow: [Template]
   providers:

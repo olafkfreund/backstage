@@ -1,0 +1,55 @@
+set shell := ["bash", "-euo", "pipefail", "-c"]
+
+subscription := "${{ values.azureSubscriptionId }}"
+location     := "${{ values.azureLocation }}"
+cluster      := "${{ values.clusterName }}"
+resource_group := "rg-${{ values.name }}"
+
+default:
+    @just --list
+
+# Initialise terraform
+init:
+    cd infra && terraform init
+
+# Plan the cluster
+plan: init
+    cd infra && terraform plan -out tfplan
+
+# Apply the cluster
+apply: init
+    cd infra && terraform apply -auto-approve
+
+# Merge kubeconfig for the cluster into ~/.kube/config
+kubeconfig:
+    az aks get-credentials \
+        --resource-group {{resource_group}} \
+        --name {{cluster}} \
+        --overwrite-existing
+    kubectl config use-context {{cluster}}
+    kubectl cluster-info
+
+# Install Traefik + cert-manager baseline
+install-baseline:
+    helm dependency update charts/baseline
+    helm upgrade --install baseline charts/baseline \
+        --namespace platform \
+        --create-namespace \
+        --wait \
+        --timeout 10m
+
+# Deploy example workload-identity app
+deploy-example:
+    kubectl apply -f apps/example/ --recursive
+    kubectl -n example rollout status deployment/example-app
+
+# Lint everything
+lint:
+    cd infra && terraform fmt -check -recursive && terraform validate
+    cd infra && tflint --init && tflint
+    helm lint charts/baseline
+    kubectl apply --dry-run=client -f apps/example/ --recursive
+
+# Tear it all down
+destroy:
+    cd infra && terraform destroy -auto-approve

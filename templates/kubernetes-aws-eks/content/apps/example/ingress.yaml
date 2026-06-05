@@ -1,0 +1,30 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: example
+  labels:
+    app.kubernetes.io/name: example
+    app.kubernetes.io/part-of: ${{ values.name }}
+  annotations:
+    # Traefik
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+    # cert-manager — uses the ClusterIssuer from charts/baseline
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - example.change-me.example.com
+      secretName: example-tls
+  rules:
+    - host: example.change-me.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: example
+                port:
+                  number: 80

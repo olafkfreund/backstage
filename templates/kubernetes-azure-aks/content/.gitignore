@@ -1,0 +1,43 @@
+# Terraform
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+
+# Helm
+charts/*/charts/
+charts/*/Chart.lock
+
+# Kubernetes
+kubeconfig
+*.kubeconfig
+
+# direnv / nix
+.direnv/
+.devenv/
+result
+result-*
+
+# Editors
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Secrets — never commit
+*.pem
+*.key
+*.pfx
+.env
+.env.*
+!.env.example

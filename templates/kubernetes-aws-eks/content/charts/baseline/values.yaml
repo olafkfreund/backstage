@@ -1,0 +1,82 @@
+# ---------------------------------------------------------------------------
+# Baseline values — edit before installing
+# ---------------------------------------------------------------------------
+
+# Email used for the Let's Encrypt account. REQUIRED for the ClusterIssuer.
+# Override at install time: --set letsEncryptEmail=ops@example.com
+letsEncryptEmail: ops@example.com
+
+# Enable / disable the bundled ClusterIssuer (set false if you bring your own)
+clusterIssuer:
+  enabled: true
+  name: letsencrypt-prod
+  server: https://acme-v02.api.letsencrypt.org/directory
+  # Set to your ingress class, must match traefik's
+  ingressClass: traefik
+
+# ---------------------------------------------------------------------------
+# Traefik — see https://github.com/traefik/traefik-helm-chart for full schema
+# ---------------------------------------------------------------------------
+traefik:
+  enabled: true
+
+  # NLB on AWS — cheap, fast, no Layer 7 quirks
+  service:
+    type: LoadBalancer
+    annotations:
+      service.beta.kubernetes.io/aws-load-balancer-type: "external"
+      service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: "ip"
+      service.beta.kubernetes.io/aws-load-balancer-scheme: "internet-facing"
+
+  ingressRoute:
+    dashboard:
+      enabled: false # never expose the dashboard by default
+
+  ports:
+    web:
+      redirectTo:
+        port: websecure
+        priority: 10
+    websecure:
+      tls:
+        enabled: true
+
+  providers:
+    kubernetesIngress:
+      publishedService:
+        enabled: true
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+# ---------------------------------------------------------------------------
+# cert-manager — see https://cert-manager.io for full schema
+# ---------------------------------------------------------------------------
+cert-manager:
+  enabled: true
+  installCRDs: true
+
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+
+  webhook:
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+
+  cainjector:
+    resources:
+      requests:
+        cpu: 50m
+        memory: 128Mi
