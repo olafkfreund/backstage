@@ -38,7 +38,7 @@ export const signalsGithubBridge = createBackendModule({
             const repo =
               ((payload?.repository as Record<string, unknown> | undefined)
                 ?.full_name as string | undefined) ?? 'unknown';
-            logger.debug(
+            logger.info(
               `signals/github-bridge: rebroadcasting ${eventName} from ${repo}`,
             );
             await signals.publish({
