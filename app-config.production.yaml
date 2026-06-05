@@ -36,6 +36,20 @@ backend:
     # external backends, configure backend.auth.keys + externalAccess
     # instead.
     dangerouslyDisableDefaultAuthPolicy: true
+    # External access for MCP clients: static bearer token (sourced from
+    # agenix via the env-bridge in modules/services/backstage.nix).
+    # MCP-aware AI clients (Claude Code, Cursor, etc.) connect to
+    # /api/mcp-actions/v1 with Authorization: Bearer ${MCP_TOKEN}.
+    externalAccess:
+      - type: static
+        options:
+          token: ${MCP_TOKEN}
+          subject: mcp-clients
+        accessRestrictions:
+          - plugin: mcp-actions
+          - plugin: catalog
+          - plugin: scaffolder
+          - plugin: techdocs
 
 integrations:
   github:
@@ -85,6 +99,33 @@ techdocs:
   # needs `metadata.annotations: backstage.io/techdocs-ref: dir:.`
   # to point at it. The techdocs-onboard workflow in olafkfreund/backstage
   # adds this automatically to every onboarded repo.
+
+# MCP Actions: expose catalog + scaffolder + techdocs tools to AI agents
+# over the Model Context Protocol. Endpoints (multi-server form):
+#   /api/mcp-actions/v1/catalog    — catalog:* tools
+#   /api/mcp-actions/v1/scaffolder — scaffolder:* tools
+#   /api/mcp-actions/v1/techdocs   — techdocs:* tools
+# Auth: Authorization: Bearer ${MCP_TOKEN} (configured under
+# backend.auth.externalAccess above; MCP_TOKEN comes from the env-bridge
+# in modules/services/backstage.nix, sourced from agenix).
+mcpActions:
+  name: 'freundcloud Backstage'
+  servers:
+    catalog:
+      name: 'Catalog'
+      filter:
+        include:
+          - id: 'catalog:*'
+    scaffolder:
+      name: 'Scaffolder'
+      filter:
+        include:
+          - id: 'scaffolder:*'
+    techdocs:
+      name: 'TechDocs'
+      filter:
+        include:
+          - id: 'techdocs:*'
 
 catalog:
   rules:
