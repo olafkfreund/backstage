@@ -24,13 +24,19 @@ type CommitRow = {
   date: Date;
 };
 
-type GithubCommit = {
-  sha?: unknown;
-  message?: unknown;
+type GithubPushPayload = {
+  // GitHub stopped including the commits[] array in /users/X/events PushEvent
+  // payloads — only `head` (the resulting head SHA) and `ref` come through
+  // now. We follow up with /repos/X/commits/{head} to fetch the message.
+  head?: unknown;
+  ref?: unknown;
 };
 
-type GithubPushPayload = {
-  commits?: unknown;
+type PushHead = {
+  repo: string;
+  sha: string;
+  ref: string;
+  date: Date;
 };
 
 type GithubRepo = {
@@ -48,9 +54,6 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null;
 
 const isString = (value: unknown): value is string => typeof value === 'string';
-
-const parseCommit = (raw: unknown): GithubCommit | null =>
-  isRecord(raw) ? (raw as GithubCommit) : null;
 
 const parseEvent = (raw: unknown): GithubEvent | null =>
   isRecord(raw) ? (raw as GithubEvent) : null;
@@ -89,12 +92,12 @@ const firstLine = (message: string): string => {
   return newlineIdx === -1 ? message : message.slice(0, newlineIdx);
 };
 
-const extractCommits = (events: unknown, since: Date): CommitRow[] => {
+const extractPushHeads = (events: unknown, since: Date): PushHead[] => {
   if (!Array.isArray(events)) {
     return [];
   }
 
-  const rows: CommitRow[] = [];
+  const heads: PushHead[] = [];
 
   for (const rawEvent of events) {
     const event = parseEvent(rawEvent);
@@ -114,31 +117,57 @@ const extractCommits = (events: unknown, since: Date): CommitRow[] => {
     }
 
     const payload = isRecord(event.payload) ? (event.payload as GithubPushPayload) : null;
-    const commits = payload && Array.isArray(payload.commits) ? payload.commits : [];
-
-    for (const rawCommit of commits) {
-      const commit = parseCommit(rawCommit);
-      if (!commit) {
-        continue;
-      }
-      const sha = isString(commit.sha) ? commit.sha : null;
-      const message = isString(commit.message) ? commit.message : null;
-      if (!sha || !message) {
-        continue;
-      }
-      rows.push({
-        repo: repoName,
-        sha,
-        shortSha: sha.slice(0, 7),
-        message: firstLine(message).trim() || '(no message)',
-        url: `https://github.com/${repoName}/commit/${sha}`,
-        date: createdAt,
-      });
+    const sha = payload && isString(payload.head) ? payload.head : null;
+    const ref = payload && isString(payload.ref) ? payload.ref : '';
+    if (!sha) {
+      continue;
     }
+
+    heads.push({ repo: repoName, sha, ref, date: createdAt });
   }
 
-  rows.sort((a, b) => b.date.getTime() - a.date.getTime());
-  return rows.slice(0, MAX_ITEMS);
+  heads.sort((a, b) => b.date.getTime() - a.date.getTime());
+  return heads.slice(0, MAX_ITEMS);
+};
+
+const fetchCommitMessage = async (
+  head: PushHead,
+  token: string,
+  signal: AbortSignal,
+): Promise<CommitRow | null> => {
+  try {
+    const response = await fetch(
+      `https://api.github.com/repos/${head.repo}/commits/${head.sha}`,
+      {
+        signal,
+        headers: {
+          Accept: 'application/vnd.github+json',
+          Authorization: `Bearer ${token}`,
+          'X-GitHub-Api-Version': '2022-11-28',
+        },
+      },
+    );
+    if (!response.ok) {
+      return null;
+    }
+    const data: unknown = await response.json();
+    const obj = isRecord(data) ? data : null;
+    const commit = obj && isRecord(obj.commit) ? (obj.commit as Record<string, unknown>) : null;
+    const message = commit && isString(commit.message) ? commit.message : null;
+    if (!message) {
+      return null;
+    }
+    return {
+      repo: head.repo,
+      sha: head.sha,
+      shortSha: head.sha.slice(0, 7),
+      message: firstLine(message).trim() || '(no message)',
+      url: `https://github.com/${head.repo}/commit/${head.sha}`,
+      date: head.date,
+    };
+  } catch {
+    return null;
+  }
 };
 
 const useStyles = makeStyles(theme => ({
@@ -217,7 +246,16 @@ export const RecentActivity: React.FC = () => {
 
         const data: unknown = await response.json();
         const since = new Date(Date.now() - LOOKBACK_MS);
-        const extracted = extractCommits(data, since);
+        const heads = extractPushHeads(data, since);
+
+        // GitHub's /users/X/events PushEvent payloads no longer include
+        // the commits[] array — only `head`. Follow up per-PushEvent with
+        // /repos/X/commits/{head} to pull the commit message. Fetches run
+        // in parallel; failures fall through to a null row that's filtered.
+        const settled = await Promise.all(
+          heads.map(h => fetchCommitMessage(h, token, signal)),
+        );
+        const extracted = settled.filter((r): r is CommitRow => r !== null);
 
         if (!signal.aborted) {
           setRows(extracted);
