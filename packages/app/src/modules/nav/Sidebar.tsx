@@ -8,6 +8,7 @@ import {
 } from '@backstage/core-components';
 import { NavContentBlueprint } from '@backstage/plugin-app-react';
 import { SidebarLogo } from './SidebarLogo';
+import HomeIcon from '@material-ui/icons/Home';
 import MenuIcon from '@material-ui/icons/Menu';
 import SearchIcon from '@material-ui/icons/Search';
 import { SidebarSearchModal } from '@backstage/plugin-search';
@@ -38,6 +39,11 @@ export const SidebarContent = NavContentBlueprint.make({
 
       // Skipped items
       nav.take('page:search'); // Using search modal instead
+      // Take page:home out of nav.rest() so it doesn't appear twice; we
+      // render an explicit SidebarItem below to guarantee it's visible
+      // (plugin-home doesn't register a NavItemBlueprint, so relying on
+      // nav.rest() to surface it is fragile across plugin versions).
+      nav.take('page:home');
 
       return (
         <Sidebar>
@@ -47,6 +53,7 @@ export const SidebarContent = NavContentBlueprint.make({
           </SidebarGroup>
           <SidebarDivider />
           <SidebarGroup label="Menu" icon={<MenuIcon />}>
+            <SidebarItem icon={HomeIcon} to="/home" text="Home" />
             {nav.take('page:catalog')}
             {nav.take('page:scaffolder')}
             <SidebarDivider />
