@@ -9,12 +9,14 @@ import githubActionsPlugin from '@backstage-community/plugin-github-actions/alph
 import githubIssuesPlugin from '@backstage-community/plugin-github-issues/alpha';
 import githubPullRequestsBoardPlugin from '@backstage-community/plugin-github-pull-requests-board/alpha';
 import techInsightsPlugin from '@backstage-community/plugin-tech-insights/alpha';
-// @backstage-community/plugin-copilot removed — it needs an
-// org/enterprise-level GitHub Copilot subscription with
-// copilot.enterprise / copilot.organization config, which the
-// personal olafkfreund account doesn't have. The page rendered two
-// "Please add the 'copilot.enterprise' variable" nag panels for
-// every visit. Re-install if a paid org Copilot plan is ever added.
+import copilotPlugin from '@backstage-community/plugin-copilot/alpha';
+// The Copilot pages render "Please add the 'copilot.enterprise' /
+// 'copilot.organization' variable" warnings until you set those
+// config keys in app-config.production.yaml AND have a paid GitHub
+// Copilot Business/Enterprise plan tied to that slug. The personal
+// olafkfreund account doesn't currently have one — the plugin is
+// installed anyway so the sidebar tile is visible; populate the
+// config when the plan exists.
 
 // Note: plugin-github-actions / -github-pull-requests / -security-insights
 // were tried as entity tabs via EntityContentBlueprint + convertLegacyPlugin
@@ -42,5 +44,6 @@ export default createApp({
     githubIssuesPlugin,
     githubPullRequestsBoardPlugin,
     techInsightsPlugin,
+    copilotPlugin,
   ],
 });
