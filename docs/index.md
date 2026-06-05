@@ -147,12 +147,33 @@ gh workflow run catalog-onboard.yml --repo olafkfreund/backstage \
   -f max_prs=30
 ```
 
-## What's intentionally NOT here yet
+## What's new (post-stand-up)
 
-- **TechDocs** — needs an S3-compatible storage backend; add when there
-  are docs to publish
+Since the original day-1 stand-up the portal has shipped four integration
+phases — Gruvbox theming + Freundcloud logo, GitHub plugin wiring,
+GitLab parity, and real-time freshness via webhooks + signals. Plus 11
+scaffolder templates, an MCP bridge for Claude Code, and 5 community
+plugins (Actions / Issues / PR Board / Tech Insights / Copilot).
+
+Deep dives:
+
+- **[Phases A → D](phases/index.md)** — the integration shipping log
+- **[Integrations](integrations/index.md)** — GitHub, GitLab, Events,
+  MCP, with secret rotation procedures
+- **[Architecture](architecture/index.md)** — declarative frontend,
+  custom modules, theme system
+
+Image bump trail (15 deploys this session):
+
+```
+adefc77 → c707f8d → 9082e12 → 4f79f5d → 349d3c10
+→ cc024bb3 → 3458fc58 → 149315cd → 14ce8351 → 05cd3f92
+→ e22ae753 → 58af6263 → d4107d8f → 3921d610 → 028ca273
+```
+
+## Currently NOT here
+
 - **Kubernetes plugin** — no live cluster on the freundcloud network
   (k3s microvms are dormant on p510)
-- **Software templates / scaffolder backend** — nice-to-have, skip until
-  a real reuse case exists
-- **Custom plugins** — add when there's a concrete need
+- **Service mesh / Datadog / PagerDuty etc** — not in scope until the
+  home lab grows past three hosts

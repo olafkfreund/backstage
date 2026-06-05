@@ -3,14 +3,45 @@ kind: Component
 metadata:
   name: backstage
   title: Backstage Portal
-  description: Spotify Backstage developer portal for the freundcloud home lab. Deployed to p510 via olafkfreund/nixos_config.
+  description: |
+    Spotify Backstage developer portal for the freundcloud home lab.
+    Customised app (Gruvbox theme, Freundcloud logo, HomePage with 4
+    GitHub-data widgets), GitHub + GitLab integrations with discovery,
+    events backend with HMAC-validated webhook ingestion and signals
+    bridge for sub-second updates, MCP Actions for Claude Code, 11
+    software templates, 5 community plugins.
+
+    Deployed to p510 via podman-backstage.service. Configuration in
+    olafkfreund/nixos_config modules/services/backstage.nix.
   annotations:
     github.com/project-slug: olafkfreund/backstage
     backstage.io/techdocs-ref: dir:.
+    backstage.io/source-location: url:https://github.com/olafkfreund/backstage
+    backstage.io/view-url: https://github.com/olafkfreund/backstage
+    backstage.io/edit-url: https://github.com/olafkfreund/backstage/edit/main/
+    github.com/project-readme-path: README.md
   tags:
     - backstage
     - typescript
     - portal
+    - developer-experience
+    - techdocs
+    - scaffolder
+    - mcp
+    - declarative-frontend
+  links:
+    - url: https://p510.tail833f7.ts.net/backstage
+      title: Live portal (tailnet)
+      icon: dashboard
+    - url: https://github.com/olafkfreund/backstage/issues/7
+      title: Integrations epic (A–D)
+      icon: rocket
+    - url: https://github.com/olafkfreund/backstage/blob/main/docs/DEPLOY.md
+      title: Deploy guide
+      icon: book
+    - url: https://github.com/olafkfreund/backstage/blob/main/docs/PLUGINS.md
+      title: Plugin inventory
+      icon: extension
 spec:
   type: service
   lifecycle: production

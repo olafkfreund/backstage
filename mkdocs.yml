@@ -1,11 +1,47 @@
-# MkDocs config for Backstage TechDocs.
-# Edit at will — Backstage rebuilds on next view.
+# MkDocs config for Backstage TechDocs. Backstage's `local` builder
+# in techdocs.builder runs `mkdocs build` inline against the repo
+# checkout when the entity TechDocs tab is first viewed, then caches
+# the output for 24 hours (techdocs.cache.ttlMinutes).
+#
+# Editing: hand-edit, commit, push. Next view of the entity TechDocs
+# tab triggers a rebuild.
+#
 # https://backstage.io/docs/features/techdocs/getting-started
 
-site_name: backstage
-site_description: Spotify Backstage developer portal for the freundcloud home lab (deployed to p510 via olafkfreund/nixos_config)
+site_name: Backstage Portal
+site_description: >-
+  Customised Spotify Backstage for the freundcloud home lab — themes,
+  templates, GitHub + GitLab integrations, real-time event ingestion,
+  and an MCP bridge for Claude Code.
+site_author: olafkfreund
+
+repo_url: https://github.com/olafkfreund/backstage
+repo_name: olafkfreund/backstage
+edit_uri: edit/main/docs/
 
 docs_dir: docs
 
 plugins:
   - techdocs-core
+
+nav:
+  - Overview: index.md
+  - Deploy: DEPLOY.md
+  - Plugins: PLUGINS.md
+  - Phases:
+      - phases/index.md
+      - "A — Theme + Logo": phases/a-theme-logo.md
+      - "B — Dormant GitHub plugins": phases/b-dormant-github-plugins.md
+      - "C — GitLab parity": phases/c-gitlab-parity.md
+      - "D — Real-time freshness": phases/d-real-time-freshness.md
+  - Integrations:
+      - integrations/index.md
+      - GitHub: integrations/github.md
+      - GitLab: integrations/gitlab.md
+      - Events + Webhooks: integrations/events.md
+      - MCP for AI agents: integrations/mcp.md
+  - Architecture:
+      - architecture/index.md
+      - Declarative Frontend: architecture/declarative-frontend.md
+      - Custom Modules: architecture/custom-modules.md
+      - Theme System: architecture/theme.md
