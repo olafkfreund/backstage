@@ -8,7 +8,7 @@ home lab. Deployed on **p510** via
 
 This repo holds the customised Backstage application (Yarn 4 monorepo,
 scaffolded with `@backstage/create-app`) plus the CI workflow that publishes
-a container image to `ghcr.io/freundcloud/backstage` on every push to
+a container image to `ghcr.io/olafkfreund/backstage` on every push to
 `main`. The image is consumed by the NixOS module
 `modules/services/backstage.nix` in `olafkfreund/nixos_config`, which runs
 it on p510 alongside a sibling Postgres container.
@@ -68,8 +68,8 @@ push to `main`:
 2. `yarn tsc` + `yarn backstage-cli repo lint` + `yarn backstage-cli repo test`
 3. `yarn build:backend --config app-config.production.yaml`
 4. `docker build` against `packages/backend/Dockerfile`
-5. Push to `ghcr.io/freundcloud/backstage:latest` AND
-   `ghcr.io/freundcloud/backstage:sha-<commit>`
+5. Push to `ghcr.io/olafkfreund/backstage:latest` AND
+   `ghcr.io/olafkfreund/backstage:sha-<commit>`
 6. The job's "Print SHA digest" step emits the digest you paste into the
    NixOS module
 

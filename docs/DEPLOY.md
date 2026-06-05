@@ -14,7 +14,7 @@ image.
 ```nix
 features.backstage = {
   enable = true;
-  image = "ghcr.io/freundcloud/backstage@sha256:<digest>";
+  image = "ghcr.io/olafkfreund/backstage@sha256:<digest>";
 };
 ```
 
