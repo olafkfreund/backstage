@@ -63,6 +63,10 @@ jobs:
             echo "::error::BOT_PAT secret is not set."; exit 1
           fi
 
+      # Needed so .github/onboard-exclude.txt is available to the
+      # discovery step below.
+      - uses: actions/checkout@v4
+
       - name: Discover repos with API specs
         id: pick
         run: |

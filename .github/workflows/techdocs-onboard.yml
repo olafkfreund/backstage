@@ -54,6 +54,10 @@ jobs:
             exit 1
           fi
 
+      # Needed so .github/onboard-exclude.txt is available to the
+      # discovery step below.
+      - uses: actions/checkout@v4
+
       - name: Pick repos to onboard for TechDocs
         id: pick
         run: |
