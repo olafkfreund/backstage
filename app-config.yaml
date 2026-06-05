@@ -10,15 +10,12 @@ app:
     - page:catalog:
         config:
           path: /
-    # Sign-in page: list both providers. Guest is universally available;
-    # github only resolves to the real OAuth flow when
-    # auth.providers.github is configured (production only — dev falls
-    # through to guest silently).
-    - app/sign-in-page:
-        config:
-          providers:
-            - guest
-            - github
+    # Sign-in page is overridden in packages/app/src/modules/signInPage —
+    # the YAML extension I previously tried (`app/sign-in-page`) is not
+    # the actual extension id for the declarative frontend's sign-in
+    # page. Custom override via createFrontendModule is the documented
+    # way to surface OAuth providers (otherwise the default sign-in
+    # shows ONLY guest, even when auth.providers.github is configured).
 
 organization:
   name: My Company
