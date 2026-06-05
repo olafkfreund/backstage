@@ -18,6 +18,13 @@ backend:
       user: ${POSTGRES_USER}
       password: ${POSTGRES_PASSWORD}
       database: ${POSTGRES_DB}
+  auth:
+    # Single-user self-host: no service-to-service backends to authenticate.
+    # Without this, Backstage 1.30+ rejects every /api/* call (including
+    # frontend → catalog) with 401. For a multi-tenant deployment with
+    # external backends, configure backend.auth.keys + externalAccess
+    # instead.
+    dangerouslyDisableDefaultAuthPolicy: true
 
 integrations:
   github:
@@ -35,8 +42,13 @@ auth:
         clientSecret: ${AUTH_GITHUB_CLIENT_SECRET}
         signIn:
           resolvers:
+            # Single-user self-host: match GitHub username (olafkfreund)
+            # against the User entity in nixos_config/catalog-info.yaml.
+            # The email-matching fallback was dropped because olafkfreund's
+            # GitHub profile email is private/unverified for OAuth scope,
+            # which threw "user profile does not contain an email" instead
+            # of failing cleanly to this resolver.
             - resolver: usernameMatchingUserEntityName
-            - resolver: emailMatchingUserEntityProfileEmail
 
 catalog:
   rules:
