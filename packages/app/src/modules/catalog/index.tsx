@@ -1,75 +1,92 @@
-// Per-entity tabs sourced from plugins that ship in package.json but
-// don't auto-register themselves in the declarative frontend. We use
-// EntityContentBlueprint to attach each one to the entity page tabs
-// input, gated by the github.com/project-slug annotation so the tab
-// only shows on entities backed by a GitHub repo.
+// Per-entity tabs sourced from legacy plugins. `compatWrapper` alone
+// isn't enough — the plugins use internal routeRefs for sub-routing
+// (e.g. drilling into a workflow run), and those refs aren't
+// registered with the app router unless you go through
+// `convertLegacyPlugin`, which auto-converts the plugin's getApis(),
+// routes, and externalRoutes into declarative-frontend equivalents.
+//
+// Each plugin becomes its own FrontendPlugin entry in App.tsx
+// features, carrying an entity-content extension that filters by the
+// github.com/project-slug annotation.
 
-import { createFrontendModule } from '@backstage/frontend-plugin-api';
+import { convertLegacyPlugin } from '@backstage/core-compat-api';
 import { EntityContentBlueprint } from '@backstage/plugin-catalog-react/alpha';
-import { compatWrapper } from '@backstage/core-compat-api';
 
-const githubActionsContent = EntityContentBlueprint.make({
+import {
+  githubActionsPlugin,
+  EntityGithubActionsContent,
+} from '@backstage/plugin-github-actions';
+import {
+  githubInsightsPlugin,
+  EntityGithubInsightsContent,
+} from '@roadiehq/backstage-plugin-github-insights';
+import {
+  githubPullRequestsPlugin,
+  EntityGithubPullRequestsContent,
+} from '@roadiehq/backstage-plugin-github-pull-requests';
+import {
+  securityInsightsPlugin,
+  EntitySecurityInsightsContent,
+} from '@roadiehq/backstage-plugin-security-insights';
+
+const GITHUB_FILTER = 'metadata.annotations["github.com/project-slug"]';
+
+const githubActionsEntityContent = EntityContentBlueprint.make({
   name: 'github-actions',
   params: {
     path: 'github-actions',
     title: 'Actions',
-    group: 'ci-cd',
-    filter: 'metadata.annotations["github.com/project-slug"]',
-    loader: () =>
-      import('@backstage/plugin-github-actions').then(m =>
-        compatWrapper(<m.EntityGithubActionsContent />),
-      ),
+    filter: GITHUB_FILTER,
+    loader: () => Promise.resolve(<EntityGithubActionsContent />),
   },
 });
 
-const githubInsightsContent = EntityContentBlueprint.make({
+const githubInsightsEntityContent = EntityContentBlueprint.make({
   name: 'github-insights',
   params: {
-    path: 'github-insights',
-    title: 'Insights',
-    group: 'github',
-    filter: 'metadata.annotations["github.com/project-slug"]',
-    loader: () =>
-      import('@roadiehq/backstage-plugin-github-insights').then(m =>
-        compatWrapper(<m.EntityGithubInsightsContent />),
-      ),
+    path: 'github-insights-tab',
+    title: 'Repo Insights',
+    filter: GITHUB_FILTER,
+    loader: () => Promise.resolve(<EntityGithubInsightsContent />),
   },
 });
 
-const githubPullRequestsContent = EntityContentBlueprint.make({
+const githubPullRequestsEntityContent = EntityContentBlueprint.make({
   name: 'github-pull-requests',
   params: {
     path: 'github-pull-requests',
-    title: 'Pull requests',
-    group: 'github',
-    filter: 'metadata.annotations["github.com/project-slug"]',
-    loader: () =>
-      import('@roadiehq/backstage-plugin-github-pull-requests').then(m =>
-        compatWrapper(<m.EntityGithubPullRequestsContent />),
-      ),
+    title: 'Pull Requests',
+    filter: GITHUB_FILTER,
+    loader: () => Promise.resolve(<EntityGithubPullRequestsContent />),
   },
 });
 
-const securityInsightsContent = EntityContentBlueprint.make({
+const securityInsightsEntityContent = EntityContentBlueprint.make({
   name: 'security-insights',
   params: {
     path: 'security',
     title: 'Security',
-    group: 'github',
-    filter: 'metadata.annotations["github.com/project-slug"]',
-    loader: () =>
-      import('@roadiehq/backstage-plugin-security-insights').then(m =>
-        compatWrapper(<m.EntitySecurityInsightsContent />),
-      ),
+    filter: GITHUB_FILTER,
+    loader: () => Promise.resolve(<EntitySecurityInsightsContent />),
   },
 });
 
-export const catalogModule = createFrontendModule({
-  pluginId: 'catalog',
-  extensions: [
-    githubActionsContent,
-    githubInsightsContent,
-    githubPullRequestsContent,
-    securityInsightsContent,
-  ],
-});
+export const githubActionsConvertedPlugin = convertLegacyPlugin(
+  githubActionsPlugin,
+  { extensions: [githubActionsEntityContent] },
+);
+
+export const githubInsightsConvertedPlugin = convertLegacyPlugin(
+  githubInsightsPlugin,
+  { extensions: [githubInsightsEntityContent] },
+);
+
+export const githubPullRequestsConvertedPlugin = convertLegacyPlugin(
+  githubPullRequestsPlugin,
+  { extensions: [githubPullRequestsEntityContent] },
+);
+
+export const securityInsightsConvertedPlugin = convertLegacyPlugin(
+  securityInsightsPlugin,
+  { extensions: [securityInsightsEntityContent] },
+);
