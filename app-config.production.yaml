@@ -58,6 +58,23 @@ auth:
             # of failing cleanly to this resolver.
             - resolver: usernameMatchingUserEntityName
 
+techdocs:
+  # Local builder: backend runs `mkdocs build` inline against the repo
+  # checkout. First view of a doc takes ~10s while mkdocs renders; cached
+  # after that. Cache dir is `techdocs.cache.path` (defaults to /tmp,
+  # we override to a persistent volume so it survives container restarts).
+  builder: 'local'
+  generator:
+    runIn: 'local'
+  publisher:
+    type: 'local'
+  cache:
+    ttlMinutes: 1440  # 1 day
+  # When a repo's mkdocs.yml lives at the entity's repo root, the entity
+  # needs `metadata.annotations: backstage.io/techdocs-ref: dir:.`
+  # to point at it. The techdocs-onboard workflow in olafkfreund/backstage
+  # adds this automatically to every onboarded repo.
+
 catalog:
   rules:
     - allow: [Component, System, API, Resource, Location, User, Group, Template]
