@@ -4,6 +4,7 @@ import { navModule } from './modules/nav';
 import { signInPageModule } from './modules/signInPage';
 import { homePageModule } from './modules/home';
 import { themeModule } from './modules/theme';
+import { catalogModule } from './modules/catalog';
 
 export default createApp({
   features: [
@@ -12,5 +13,6 @@ export default createApp({
     signInPageModule,
     homePageModule,
     themeModule,
+    catalogModule,
   ],
 });
