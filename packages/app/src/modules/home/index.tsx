@@ -120,11 +120,12 @@ const HomePageContent = () => (
   </Page>
 );
 
-// Override the default home page by registering an extension at the
-// same path. The id `page:home/home` matches what @backstage/plugin-home
-// auto-registers via packages:all.
+// Override the default home page. @backstage/plugin-home registers its
+// homePage extension WITHOUT a `name`, which makes its id just `page:home`
+// (no name suffix). To replace it we must also omit `name` here so the
+// IDs match — otherwise this just registers a second `/home` route that
+// loses to the default in react-router resolution.
 const homePageOverride = PageBlueprint.makeWithOverrides({
-  name: 'home',
   factory(originalFactory) {
     return originalFactory({
       path: '/home',
