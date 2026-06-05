@@ -146,6 +146,22 @@ catalog:
       target: https://github.com/olafkfreund/backstage/blob/main/templates/rust-service/template.yaml
       rules:
         - allow: [Template]
+    - type: url
+      target: https://github.com/olafkfreund/backstage/blob/main/templates/python-service/template.yaml
+      rules:
+        - allow: [Template]
+    - type: url
+      target: https://github.com/olafkfreund/backstage/blob/main/templates/typescript-service/template.yaml
+      rules:
+        - allow: [Template]
+    - type: url
+      target: https://github.com/olafkfreund/backstage/blob/main/templates/cosmic-applet/template.yaml
+      rules:
+        - allow: [Template]
+    - type: url
+      target: https://github.com/olafkfreund/backstage/blob/main/templates/nixos-module/template.yaml
+      rules:
+        - allow: [Template]
   providers:
     # GitHubEntityProvider scans olafkfreund's repos and ingests every
     # `catalog-info.yaml` it finds. Repos without one are silent — the
