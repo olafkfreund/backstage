@@ -9,6 +9,11 @@ app:
           rootEntityRefs:
             - group:default/olafkfreund
           maxDepth: 2
+    # Hide the github-insights Compliance card — it just nags about
+    # missing branch protection rules + LICENSE files on every entity
+    # overview. The signal is real but the UX is noisy. Re-enable by
+    # changing `false` → `true` once every repo has both.
+    - entity-card:github-insights/compliance: false
 
 backend:
   baseUrl: ${BACKSTAGE_PUBLIC_URL}
