@@ -92,4 +92,16 @@ backend.add(import('@backstage/plugin-signals-backend'));
 // mcp actions plugin
 backend.add(import('@backstage/plugin-mcp-actions-backend'));
 
+// Events backend + GitHub module. Exposes POST /api/events/http/github
+// for GitHub webhook delivery, validates HMAC-SHA256 with the secret
+// from env (GITHUB_WEBHOOK_SECRET, bridged from agenix), and publishes
+// the parsed event onto the `github` topic. Subscribers (e.g. a
+// catalog-refresh-on-push module, or signals re-broadcasters) can
+// register against that topic without further plumbing.
+//
+// Tailscale Funnel exposes the webhook path publicly; HMAC validation
+// is the only gate, so the secret must be high-entropy.
+backend.add(import('@backstage/plugin-events-backend'));
+backend.add(import('@backstage/plugin-events-backend-module-github'));
+
 backend.start();
