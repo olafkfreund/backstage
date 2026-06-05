@@ -17,8 +17,18 @@ import { NotificationsSidebarItem } from '@backstage/plugin-notifications';
 export const SidebarContent = NavContentBlueprint.make({
   params: {
     component: ({ navItems }) => {
+      // Deep-link the Catalog Graph sidebar item to a default root entity
+      // so clicking it lands on a populated graph instead of a blank
+      // canvas. Title + icon from the plugin are preserved.
+      const CATALOG_GRAPH_HREF =
+        '/catalog-graph?rootEntityRefs=user:default/olafkfreund&maxDepth=2';
+
       const nav = navItems.withComponent(item => (
-        <SidebarItem icon={() => item.icon} to={item.href} text={item.title} />
+        <SidebarItem
+          icon={() => item.icon}
+          to={item.href === '/catalog-graph' ? CATALOG_GRAPH_HREF : item.href}
+          text={item.title}
+        />
       ));
 
       // Skipped items
