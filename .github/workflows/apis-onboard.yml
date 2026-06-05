@@ -130,11 +130,17 @@ jobs:
               || true
 
             if [ -z "$spec" ]; then
-              # gRPC — search for any *.proto under proto/, api/, protos/
+              # gRPC — search for any *.proto under proto/, api/, protos/.
+              # Two-step probe: existence check first (silent), then
+              # parse the body. Without the existence check, gh api on a
+              # 404 leaks the error JSON body to stdout and jq parses it
+              # into garbage values that look like real paths.
               for d in proto api protos; do
+                if ! gh api "repos/olafkfreund/$name/contents/$d?ref=$default_branch" \
+                     --silent 2>/dev/null; then continue; fi
                 proto_path=$(gh api "repos/olafkfreund/$name/contents/$d?ref=$default_branch" \
-                             --jq '[.[]? | select(.type=="file" and (.name|endswith(".proto")))][0].path' \
-                             2>/dev/null || true)
+                             2>/dev/null \
+                             | jq -r '[.[]? | select(.type=="file" and (.name|endswith(".proto")))][0].path // ""')
                 if [ -n "$proto_path" ] && [ "$proto_path" != "null" ]; then
                   spec="grpc|$proto_path"
                   break
