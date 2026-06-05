@@ -127,8 +127,17 @@ jobs:
             tmpdir=$(mktemp -d)
             trap 'rm -rf "$tmpdir"' EXIT
 
-            git clone --depth 1 "https://x-access-token:${GH_TOKEN}@github.com/olafkfreund/${name}.git" \
-              "$tmpdir/repo"
+            # Tolerate 403 / clone failures (some repos may be outside
+            # the BOT_PAT's scope, archived in a way that blocks pushes,
+            # or otherwise inaccessible). Skip + log instead of bailing
+            # so a single bad repo doesn't kill the whole batch.
+            if ! git clone --depth 1 "https://x-access-token:${GH_TOKEN}@github.com/olafkfreund/${name}.git" \
+                 "$tmpdir/repo" 2>/dev/null; then
+              echo "::warning::clone failed for $name (likely 403; skipping)"
+              rm -rf "$tmpdir"
+              trap - EXIT
+              continue
+            fi
             cd "$tmpdir/repo"
 
             cat > catalog-info.yaml <<EOF
