@@ -13,7 +13,26 @@ app:
     # missing branch protection rules + LICENSE files on every entity
     # overview. The signal is real but the UX is noisy. Re-enable by
     # changing `false` → `true` once every repo has both.
-    - entity-card:github-insights/compliance: false
+    # Note: the plugin's actual pluginId is "code-insights", not
+    # "github-insights" — the package is namespaced differently from
+    # its internal plugin id.
+    - entity-card:code-insights/compliance: false
+    # @immobiliarelabs/backstage-plugin-gitlab attaches its overview
+    # cards to EVERY entity without checking annotations. Without a
+    # gitlab.com/project-slug on the entity, each card fires an API
+    # call against GitLab using the github slug, gets a 400, and
+    # renders a "wrong project_slug or project_id" alert. Disable all
+    # of them until we actually have GitLab projects. The Pipelines
+    # entity *tab* uses isGitlabAvailable and is unaffected.
+    - entity-card:gitlab/readme: false
+    - entity-card:gitlab/coverage: false
+    - entity-card:gitlab/releases: false
+    - entity-card:gitlab/merge-requests-stats: false
+    - entity-card:gitlab/people: false
+    - entity-card:gitlab/languages: false
+    - entity-card:gitlab/issues-table: false
+    - entity-card:gitlab/pipelines-table: false
+    - entity-card:gitlab/merge-requests-table: false
 
 backend:
   baseUrl: ${BACKSTAGE_PUBLIC_URL}
