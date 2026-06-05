@@ -163,7 +163,12 @@ jobs:
           echo "count=$count" >> "$GITHUB_OUTPUT"
           echo "remaining=$remaining" >> "$GITHUB_OUTPUT"
           echo "::notice::APIs-onboarding $count repos this run; $remaining still pending."
-          [ -s candidates.jsonl ] && jq -r '"  → " + .name + " (" + .spec_type + ": " + .spec_path + ")"' candidates.jsonl | head -50
+          # `[ -s file ] && cmd` returns 1 under set -e when file is empty,
+          # which is the normal case (no repos have specs yet). Wrap so the
+          # step succeeds on empty candidate lists.
+          if [ -s candidates.jsonl ]; then
+            jq -r '"  → " + .name + " (" + .spec_type + ": " + .spec_path + ")"' candidates.jsonl | head -50
+          fi
 
       - name: Configure git identity for the bot
         if: ${{ steps.pick.outputs.count != '0' && env.DRY_RUN == 'false' }}
