@@ -100,6 +100,50 @@ push to `main`:
   populates the software catalog from `catalog-info.yaml` files. Classic
   PATs are not used — fine-grained PATs limit blast radius if leaked.
 
+## Catalog onboarding
+
+Two cooperating mechanisms populate the catalog:
+
+1. **Backstage's `GithubEntityProvider`** scans every repo under
+   `olafkfreund/*` every hour and ingests `catalog-info.yaml` from any repo
+   that has one. Configured in `app-config.production.yaml` under
+   `catalog.providers.github.olafkfreundAllRepos`. Forks and archives are
+   included on purpose (per epic decision).
+2. **The catalog-onboard workflow** (`.github/workflows/catalog-onboard.yml`)
+   runs daily (06:17 UTC) plus on `workflow_dispatch`. It lists repos
+   that DON'T have `catalog-info.yaml`, takes the first 10, and opens a PR
+   against each adding a templated file. Lifecycle is derived from repo
+   state (`deprecated` for archived, `experimental` for forks, otherwise
+   `production`); tier from visibility.
+
+The PR-bot requires a secret named **`BOT_PAT`** in this repo's
+**Settings → Secrets and variables → Actions**. It must be a fine-grained
+PAT scoped to all your repos with:
+
+- Repository → **Contents (Read & Write)**
+- Repository → **Pull requests (Read & Write)**
+- Repository → **Metadata (Read)**
+
+Until `BOT_PAT` is set, the workflow fails fast with a clear error. The
+read-only PAT Backstage uses for discovery (`backstage-github-token.age`
+in `olafkfreund/nixos_config`) intentionally cannot be reused — keeping
+read and write capabilities split limits blast radius.
+
+Manual control:
+
+```bash
+# Trigger an immediate run (default 10 PRs)
+gh workflow run catalog-onboard.yml --repo olafkfreund/backstage
+
+# Dry-run — list candidates, open no PRs
+gh workflow run catalog-onboard.yml --repo olafkfreund/backstage \
+  -f dry_run=true
+
+# Larger batch for catch-up
+gh workflow run catalog-onboard.yml --repo olafkfreund/backstage \
+  -f max_prs=30
+```
+
 ## What's intentionally NOT here yet
 
 - **TechDocs** — needs an S3-compatible storage backend; add when there

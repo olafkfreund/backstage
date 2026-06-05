@@ -1,0 +1,186 @@
+name: Catalog onboard
+
+# Opens PRs against olafkfreund's repos that lack a catalog-info.yaml,
+# so they appear in Backstage's GitHubEntityProvider scan. Batched to
+# avoid flooding (default 10 PRs/run) and idempotent (skips repos that
+# already have catalog-info.yaml on the default branch OR an open PR
+# titled "chore: onboard to Backstage catalog").
+#
+# Requires secret BOT_PAT — a fine-grained PAT with:
+#   Repository access: All repositories (or All except specific)
+#   Permissions: Contents (Read & Write), Pull requests (Read & Write),
+#                Metadata (Read)
+# The PAT used by Backstage itself (backstage-github-token.age in
+# nixos_config) is READ-ONLY by design and intentionally cannot be
+# reused here.
+
+on:
+  schedule:
+    - cron: '17 6 * * *' # daily ~06:17 UTC (off the hour to dodge GH cron stampede)
+  workflow_dispatch:
+    inputs:
+      max_prs:
+        description: 'Maximum PRs to open in this run'
+        required: false
+        default: '10'
+      dry_run:
+        description: 'List repos to onboard but do not open PRs'
+        required: false
+        default: 'false'
+        type: choice
+        options: [ 'false', 'true' ]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: catalog-onboard
+  cancel-in-progress: false
+
+jobs:
+  onboard:
+    runs-on: ubuntu-24.04
+    if: ${{ github.repository_owner == 'olafkfreund' }}
+    env:
+      GH_TOKEN: ${{ secrets.BOT_PAT }}
+      MAX_PRS: ${{ github.event.inputs.max_prs || '10' }}
+      DRY_RUN: ${{ github.event.inputs.dry_run || 'false' }}
+    steps:
+      - name: Verify BOT_PAT is set
+        run: |
+          if [ -z "${{ secrets.BOT_PAT }}" ]; then
+            echo "::error::BOT_PAT secret is not set. See workflow file header for required scopes."
+            exit 1
+          fi
+
+      - name: Pick repos to onboard
+        id: pick
+        run: |
+          set -euo pipefail
+          # Iterate ALL owned repos (includes forks + archives per epic decision).
+          # `--source` would exclude forks; we deliberately don't pass it.
+          gh repo list olafkfreund --limit 1000 \
+            --json name,defaultBranchRef,description,isFork,isArchived,repositoryTopics,visibility \
+            > all_repos.json
+
+          jq -c '.[]' all_repos.json | while read -r repo; do
+            name=$(jq -r '.name' <<<"$repo")
+            default_branch=$(jq -r '.defaultBranchRef.name // "main"' <<<"$repo")
+            # Skip if catalog-info.yaml already exists on default branch.
+            if gh api "repos/olafkfreund/$name/contents/catalog-info.yaml?ref=$default_branch" \
+                 --silent 2>/dev/null; then
+              continue
+            fi
+            # Skip if an open PR titled "chore: onboard to Backstage catalog" exists.
+            open_pr=$(gh pr list --repo "olafkfreund/$name" \
+                       --state open --search 'in:title "onboard to Backstage catalog"' \
+                       --json number -q 'length' 2>/dev/null || echo 0)
+            if [ "$open_pr" -gt 0 ]; then continue; fi
+            echo "$repo"
+          done > candidates.jsonl
+
+          # Take up to MAX_PRS
+          head -n "$MAX_PRS" candidates.jsonl > to_onboard.jsonl
+          count=$(wc -l < to_onboard.jsonl)
+          remaining=$(($(wc -l < candidates.jsonl) - count))
+          echo "count=$count" >> "$GITHUB_OUTPUT"
+          echo "remaining=$remaining" >> "$GITHUB_OUTPUT"
+          echo "::notice::Onboarding $count repos this run; $remaining still pending."
+
+      - name: Configure git identity for the bot
+        if: ${{ steps.pick.outputs.count != '0' && env.DRY_RUN == 'false' }}
+        run: |
+          git config --global user.email "olaf@freundcloud.com"
+          git config --global user.name "olafkfreund (catalog onboard bot)"
+
+      - name: Open onboarding PRs
+        if: ${{ steps.pick.outputs.count != '0' && env.DRY_RUN == 'false' }}
+        run: |
+          set -euo pipefail
+          while IFS= read -r repo; do
+            name=$(jq -r '.name' <<<"$repo")
+            default_branch=$(jq -r '.defaultBranchRef.name // "main"' <<<"$repo")
+            description=$(jq -r '.description // ""' <<<"$repo")
+            is_fork=$(jq -r '.isFork' <<<"$repo")
+            is_archived=$(jq -r '.isArchived' <<<"$repo")
+            visibility=$(jq -r '.visibility' <<<"$repo")
+            topics=$(jq -r '[.repositoryTopics[].name] | unique | join(",")' <<<"$repo")
+
+            lifecycle="production"
+            [ "$is_archived" = "true" ] && lifecycle="deprecated"
+            [ "$is_fork" = "true" ] && [ "$lifecycle" = "production" ] && lifecycle="experimental"
+            tier=$([ "$visibility" = "PRIVATE" ] && echo internal || echo public)
+
+            # Escape description for YAML — fold quotes/backslashes/newlines.
+            desc_escaped=$(printf '%s' "$description" | jq -Rs '.')
+
+            # Topics → YAML list
+            if [ -n "$topics" ]; then
+              tags_yaml="["
+              IFS=',' read -ra arr <<<"$topics"
+              for t in "${arr[@]}"; do tags_yaml+="$t, "; done
+              tags_yaml="${tags_yaml%, }]"
+            else
+              tags_yaml="[]"
+            fi
+
+            tmpdir=$(mktemp -d)
+            trap 'rm -rf "$tmpdir"' EXIT
+
+            git clone --depth 1 "https://x-access-token:${GH_TOKEN}@github.com/olafkfreund/${name}.git" \
+              "$tmpdir/repo"
+            cd "$tmpdir/repo"
+
+            cat > catalog-info.yaml <<EOF
+          # Auto-generated by olafkfreund/backstage catalog-onboard workflow.
+          # Hand-edit at will — the bot only fires for repos that lack this
+          # file entirely.
+          apiVersion: backstage.io/v1alpha1
+          kind: Component
+          metadata:
+            name: ${name}
+            description: ${desc_escaped}
+            annotations:
+              github.com/project-slug: olafkfreund/${name}
+            tags: ${tags_yaml}
+          spec:
+            type: service
+            lifecycle: ${lifecycle}
+            owner: olafkfreund
+            domain: ${tier}
+          EOF
+
+            branch="chore/backstage-catalog-onboard"
+            git checkout -b "$branch"
+            git add catalog-info.yaml
+            git commit -m "chore: onboard to Backstage catalog
+
+          Adds catalog-info.yaml so this repo appears in the Backstage software
+          catalog at https://p510.tail833f7.ts.net/backstage. Auto-generated by
+          olafkfreund/backstage .github/workflows/catalog-onboard.yml — safe to
+          hand-edit any time."
+            git push -u origin "$branch"
+
+            gh pr create \
+              --repo "olafkfreund/${name}" \
+              --base "$default_branch" \
+              --head "$branch" \
+              --title "chore: onboard to Backstage catalog" \
+              --body "Adds \`catalog-info.yaml\` so this repo appears in the Backstage software catalog.
+
+          The metadata mirrors the repo's description and topics. Safe to merge as-is; you can hand-edit later to add owner/system/tier richness. Auto-generated by [olafkfreund/backstage catalog-onboard workflow](https://github.com/olafkfreund/backstage/blob/main/.github/workflows/catalog-onboard.yml)." \
+              || echo "::warning::PR creation failed for $name (likely already open or repo state)"
+
+            cd /tmp
+            rm -rf "$tmpdir"
+            trap - EXIT
+          done < to_onboard.jsonl
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## Catalog onboard summary" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "- This run: ${{ steps.pick.outputs.count || 0 }} repos" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Remaining: ${{ steps.pick.outputs.remaining || 0 }} repos" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Dry-run: ${{ env.DRY_RUN }}" >> "$GITHUB_STEP_SUMMARY"

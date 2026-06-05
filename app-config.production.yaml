@@ -42,7 +42,26 @@ catalog:
   rules:
     - allow: [Component, System, API, Resource, Location, User, Group, Template]
   locations:
+    # Seed catalog: User entity for olafkfreund (so sign-in resolvers find a
+    # matching User on first GitHub OAuth login) and any hand-edited
+    # entities live alongside the .nix config.
     - type: url
       target: https://github.com/olafkfreund/nixos_config/blob/main/catalog-info.yaml
       rules:
-        - allow: [Component, System]
+        - allow: [Component, System, User, Group]
+  providers:
+    # GitHubEntityProvider scans olafkfreund's repos and ingests every
+    # `catalog-info.yaml` it finds. Repos without one are silent — the
+    # catalog-onboard.yml workflow in this repo opens PRs adding one to
+    # repos that haven't been onboarded yet (batched 10/day to avoid
+    # flooding).
+    github:
+      olafkfreundAllRepos:
+        # Personal account, not org — Backstage queries /users/X/repos.
+        organization: olafkfreund
+        catalogPath: /catalog-info.yaml
+        # No filters → forks + archives included per #731 epic decisions.
+        # filters: {}  # uncomment to narrow later
+        schedule:
+          frequency: { hours: 1 }
+          timeout: { minutes: 3 }
