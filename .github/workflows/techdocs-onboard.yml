@@ -62,9 +62,21 @@ jobs:
             --json name,defaultBranchRef,description,isFork,isArchived,visibility \
             > all_repos.json
 
+          # Shared exclude list (mirrors catalog-onboard filtering).
+          EXCLUDES=$(grep -vE '^\s*(#|$)' .github/onboard-exclude.txt 2>/dev/null || true)
+
           jq -c '.[]' all_repos.json | while read -r repo; do
             name=$(jq -r '.name' <<<"$repo")
             default_branch=$(jq -r '.defaultBranchRef.name // "main"' <<<"$repo")
+            is_archived=$(jq -r '.isArchived' <<<"$repo")
+            is_fork=$(jq -r '.isFork' <<<"$repo")
+            visibility=$(jq -r '.visibility' <<<"$repo")
+
+            # Categorical + ad-hoc exclusions (must match catalog-onboard).
+            [ "$is_archived" = "true" ] && continue
+            [ "$is_fork" = "true" ] && continue
+            [ "$visibility" = "PRIVATE" ] && continue
+            if printf '%s\n' "$EXCLUDES" | grep -Fxq "$name"; then continue; fi
 
             # Skip if no catalog-info.yaml (must onboard catalog first)
             if ! gh api "repos/olafkfreund/$name/contents/catalog-info.yaml?ref=$default_branch" \

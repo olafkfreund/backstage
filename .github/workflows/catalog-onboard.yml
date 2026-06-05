@@ -57,15 +57,28 @@ jobs:
         id: pick
         run: |
           set -euo pipefail
-          # Iterate ALL owned repos (includes forks + archives per epic decision).
-          # `--source` would exclude forks; we deliberately don't pass it.
           gh repo list olafkfreund --limit 1000 \
             --json name,defaultBranchRef,description,isFork,isArchived,repositoryTopics,visibility \
             > all_repos.json
 
+          # Load shared exclude list (one repo name per line; # comments).
+          EXCLUDES=$(grep -vE '^\s*(#|$)' .github/onboard-exclude.txt 2>/dev/null || true)
+
           jq -c '.[]' all_repos.json | while read -r repo; do
             name=$(jq -r '.name' <<<"$repo")
             default_branch=$(jq -r '.defaultBranchRef.name // "main"' <<<"$repo")
+            is_archived=$(jq -r '.isArchived' <<<"$repo")
+            is_fork=$(jq -r '.isFork' <<<"$repo")
+            visibility=$(jq -r '.visibility' <<<"$repo")
+
+            # Categorical exclusions — these never get catalogued at all.
+            [ "$is_archived" = "true" ] && continue
+            [ "$is_fork" = "true" ] && continue
+            [ "$visibility" = "PRIVATE" ] && continue
+
+            # Ad-hoc exclude list.
+            if printf '%s\n' "$EXCLUDES" | grep -Fxq "$name"; then continue; fi
+
             # Skip if catalog-info.yaml already exists on default branch.
             if gh api "repos/olafkfreund/$name/contents/catalog-info.yaml?ref=$default_branch" \
                  --silent 2>/dev/null; then

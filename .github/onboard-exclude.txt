@@ -1,0 +1,31 @@
+# Shared exclude list for the three onboarder workflows:
+#   .github/workflows/catalog-onboard.yml
+#   .github/workflows/techdocs-onboard.yml
+#   .github/workflows/apis-onboard.yml
+#
+# One repo name per line. Lines starting with # are ignored, as are
+# blank lines. Names match exactly the repo's `name` field from
+# `gh repo list olafkfreund`.
+#
+# This file ONLY covers ad-hoc per-repo exclusions. Categorical
+# exclusions (archived, forks, private) are baked into each workflow's
+# discovery step — no need to list those names here.
+#
+# To re-include a repo: delete its line and re-run the relevant
+# onboarder with `-f max_prs=80`.
+
+# === BOT_PAT scope didn't include these on the original fine-grained PAT.
+# === If you widen BOT_PAT later, delete these lines to re-attempt.
+tshop
+3Dcarousel-hyprland
+3Dstack-hyrpland
+notification-hyrpland
+r-hyprconfig
+SOW-generator
+mcp-internal-wiki
+AzBackstageIntegration
+ai_team_workshop
+ado-tui
+thunderbird-mail-ai
+ollama-skill-cv-rag
+freundcloud
