@@ -104,7 +104,7 @@ jobs:
             is_fork=$(jq -r '.isFork' <<<"$repo")
             is_archived=$(jq -r '.isArchived' <<<"$repo")
             visibility=$(jq -r '.visibility' <<<"$repo")
-            topics=$(jq -r '[.repositoryTopics[].name] | unique | join(",")' <<<"$repo")
+            topics=$(jq -r '[(.repositoryTopics // [])[].name] | unique | join(",")' <<<"$repo")
 
             lifecycle="production"
             [ "$is_archived" = "true" ] && lifecycle="deprecated"
