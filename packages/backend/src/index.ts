@@ -7,6 +7,7 @@
  */
 
 import { createBackend } from '@backstage/backend-defaults';
+import { signalsGithubBridge } from './modules/signalsGithubBridge';
 
 const backend = createBackend();
 
@@ -103,5 +104,10 @@ backend.add(import('@backstage/plugin-mcp-actions-backend'));
 // is the only gate, so the secret must be high-entropy.
 backend.add(import('@backstage/plugin-events-backend'));
 backend.add(import('@backstage/plugin-events-backend-module-github'));
+
+// Bridge github topic → signals broadcast channel `github:activity`.
+// Frontend widgets subscribe with useSignal('github:activity') and
+// re-fetch on each notification, dropping their 5-min polling.
+backend.add(signalsGithubBridge);
 
 backend.start();
