@@ -116,6 +116,25 @@ auth:
             # of failing cleanly to this resolver.
             - resolver: usernameMatchingUserEntityName
 
+# Events backend (Phase D real-time freshness). Receives GitHub
+# webhook deliveries at POST /api/events/http/github, validates the
+# HMAC signature against GITHUB_WEBHOOK_SECRET (sourced from agenix
+# via the env-bridge in modules/services/backstage.nix), and
+# republishes the parsed events onto the `github` topic. Custom
+# subscribers can listen to that topic to refresh the catalog or
+# bridge into signals for live UI updates.
+events:
+  http:
+    topics:
+      - github
+  modules:
+    github:
+      # `:-` default keeps the container booting if the env var is
+      # missing (e.g. during the rollout window before the agenix
+      # secret bridge is in place). With an empty secret the webhook
+      # endpoint exists but rejects every delivery — safe default.
+      webhookSecret: ${GITHUB_WEBHOOK_SECRET:-}
+
 techdocs:
   # Local builder: backend runs `mkdocs build` inline against the repo
   # checkout. First view of a doc takes ~10s while mkdocs renders; cached

@@ -3397,6 +3397,42 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@backstage/plugin-events-backend-module-github@npm:^0.4.12":
+  version: 0.4.12
+  resolution: "@backstage/plugin-events-backend-module-github@npm:0.4.12"
+  dependencies:
+    "@backstage/backend-plugin-api": "npm:^1.9.1"
+    "@backstage/config": "npm:^1.3.8"
+    "@backstage/integration": "npm:^2.0.2"
+    "@backstage/plugin-events-node": "npm:^0.4.22"
+    "@backstage/types": "npm:^1.2.2"
+    "@octokit/auth-callback": "npm:^5.0.0"
+    "@octokit/webhooks-methods": "npm:^3.0.0"
+    lodash: "npm:^4.17.21"
+    octokit: "npm:^3.0.0"
+  checksum: 10c0/e99f5b6d2f29d2c0d927325127c4cd0bcd058f0c5971f92195f51744fc134185dc594e2228019b50a3e0781424874b418b6e7416cd0b5f3570dd09c653fe0ca4
+  languageName: node
+  linkType: hard
+
+"@backstage/plugin-events-backend@npm:^0.6.2":
+  version: 0.6.2
+  resolution: "@backstage/plugin-events-backend@npm:0.6.2"
+  dependencies:
+    "@backstage/backend-openapi-utils": "npm:^0.6.9"
+    "@backstage/backend-plugin-api": "npm:^1.9.1"
+    "@backstage/config": "npm:^1.3.8"
+    "@backstage/errors": "npm:^1.3.1"
+    "@backstage/plugin-events-node": "npm:^0.4.22"
+    "@backstage/types": "npm:^1.2.2"
+    "@types/express": "npm:^4.17.6"
+    content-type: "npm:^1.0.5"
+    express: "npm:^4.22.0"
+    express-promise-router: "npm:^4.1.0"
+    knex: "npm:^3.0.0"
+  checksum: 10c0/18cabdf1e1a203cecc92af66970ca7cb090d1930fc702735c4705468a6139fc2a2cf446e71433b579e4beb501ba254730c5efa57c2d9a5ab75e6dcbb483f6c94
+  languageName: node
+  linkType: hard
+
 "@backstage/plugin-events-node@npm:^0.4.22":
   version: 0.4.22
   resolution: "@backstage/plugin-events-node@npm:0.4.22"
@@ -13884,6 +13920,8 @@ __metadata:
     "@backstage/plugin-catalog-backend-module-gitlab": "npm:^0.8.3"
     "@backstage/plugin-catalog-backend-module-logs": "npm:^0.1.22"
     "@backstage/plugin-catalog-backend-module-scaffolder-entity-model": "npm:^0.2.20"
+    "@backstage/plugin-events-backend": "npm:^0.6.2"
+    "@backstage/plugin-events-backend-module-github": "npm:^0.4.12"
     "@backstage/plugin-mcp-actions-backend": "npm:^0.1.13"
     "@backstage/plugin-notifications-backend": "npm:^0.6.5"
     "@backstage/plugin-permission-backend": "npm:^0.7.12"
