@@ -63,8 +63,20 @@ backend.add(import('@backstage/plugin-search-backend-module-pg'));
 backend.add(import('@backstage/plugin-search-backend-module-catalog'));
 backend.add(import('@backstage/plugin-search-backend-module-techdocs'));
 
-// kubernetes plugin
-backend.add(import('@backstage/plugin-kubernetes-backend'));
+// Kubernetes plugin removed — k3s microvms are dormant on p510, the
+// frontend errored "Entity context is not available" for every entity
+// without k8s annotations. Re-add by `yarn add @backstage/plugin-
+// kubernetes-backend` in packages/backend and `@backstage/plugin-
+// kubernetes` in packages/app, then re-enable here, when a real cluster
+// exists.
+
+// NOTE: @backstage/plugin-explore-backend and @backstage/plugin-todo-
+// backend still use the LEGACY backend system (default export is a
+// createRouter factory, not a BackendFeature). They can't be added
+// directly to the new-system `backend.add(...)`. The frontend explore
+// and todo plugins still load — explore shows seed tool data only,
+// todo's per-entity tab is empty until the backend is wired. Add via
+// a legacyPlugin wrapper or wait for upstream migration.
 
 // notifications and signals plugins
 backend.add(import('@backstage/plugin-notifications-backend'));

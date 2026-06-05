@@ -30,6 +30,14 @@ integrations:
   github:
     - host: github.com
       token: ${GITHUB_TOKEN}
+  # GitLab integration — token unset by default. To activate: create an
+  # agenix secret backstage-gitlab-token, add to secret-to-env bridge in
+  # modules/services/backstage.nix, and the @immobiliarelabs/backstage-
+  # plugin-gitlab UI will start populating. Without a token the plugin
+  # loads but every GitLab-tab fetch returns 401.
+  gitlab:
+    - host: gitlab.com
+      token: ${GITLAB_TOKEN:-}
 
 auth:
   environment: production
