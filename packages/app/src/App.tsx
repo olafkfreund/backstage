@@ -4,12 +4,14 @@ import { navModule } from './modules/nav';
 import { signInPageModule } from './modules/signInPage';
 import { homePageModule } from './modules/home';
 import { themeModule } from './modules/theme';
-import {
-  githubActionsConvertedPlugin,
-  githubInsightsConvertedPlugin,
-  githubPullRequestsConvertedPlugin,
-  securityInsightsConvertedPlugin,
-} from './modules/catalog';
+
+// Note: plugin-github-actions / -github-pull-requests / -security-insights
+// were tried as entity tabs via EntityContentBlueprint + convertLegacyPlugin
+// but they error with "routeRef not discovered" — their legacy
+// createRoutableExtension components need a routeRef binding that
+// convertLegacyPlugin doesn't auto-supply. Tracked in olafkfreund/backstage#17
+// for a follow-up. The GitHub Insights tab + GitHub Deployments card are
+// auto-wired by their alpha-bundled plugins via @backstage/plugin-catalog/alpha.
 
 export default createApp({
   features: [
@@ -18,9 +20,5 @@ export default createApp({
     signInPageModule,
     homePageModule,
     themeModule,
-    githubActionsConvertedPlugin,
-    githubInsightsConvertedPlugin,
-    githubPullRequestsConvertedPlugin,
-    securityInsightsConvertedPlugin,
   ],
 });
