@@ -1,0 +1,6 @@
+# Copy to terraform.tfvars and edit as needed.
+# terraform.tfvars is gitignored.
+
+project_id  = "${{ values.gcpProject }}"
+region      = "${{ values.gcpRegion }}"
+subnet_cidr = "10.10.0.0/20"

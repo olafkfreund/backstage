@@ -64,7 +64,11 @@ const tools: Tool[] = [
   },
   {
     label: 'Catalog Graph',
-    url: '/catalog-graph?rootEntityRefs=user:default/olafkfreund&maxDepth=2',
+    // Use ?rootEntityRefs[]= (brackets!) — catalog-graph's qs parser
+    // only respects the param when it's already an array.
+    url: `/catalog-graph?rootEntityRefs%5B%5D=${encodeURIComponent(
+      'group:default/olafkfreund',
+    )}&maxDepth=2`,
     icon: <AccountTreeIcon />,
   },
   {

@@ -1,0 +1,47 @@
+# Convenience commands. Run `just` to list.
+
+set shell := ["bash", "-euo", "pipefail", "-c"]
+
+default:
+    @just --list
+
+# Initialise the root module against the S3 backend.
+init:
+    terraform init
+
+# Format every .tf file in the repo.
+fmt:
+    terraform fmt -recursive
+
+# Check formatting without modifying files (CI uses this).
+fmt-check:
+    terraform fmt -check -recursive
+
+# Validate root module syntax.
+validate:
+    terraform validate
+
+# Lint with tflint.
+lint:
+    tflint --recursive
+
+# Produce a saved plan.
+plan:
+    terraform plan -out=tfplan
+
+# Apply the previously saved plan.
+apply:
+    terraform apply tfplan
+
+# Destroy everything in this stack. Asks for confirmation.
+destroy:
+    terraform destroy
+
+# Regenerate per-module README sections via terraform-docs.
+docs:
+    terraform-docs markdown table --output-file README.md --output-mode inject .
+    terraform-docs markdown table --output-file README.md --output-mode inject backend-bootstrap
+
+# Run all CI checks locally.
+ci: fmt-check validate lint
+    nix flake check

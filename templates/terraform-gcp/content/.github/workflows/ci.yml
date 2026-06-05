@@ -1,0 +1,50 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  flake-check:
+    name: nix flake check (fmt + validate + tflint)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      # Future: id-token: write for Workload Identity Federation when we add
+      # `terraform plan` against GCP. See README.md TODO.
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@main
+        with:
+          extra-conf: |
+            experimental-features = nix-command flakes
+            accept-flake-config = true
+
+      - name: Cache Nix store
+        uses: DeterminateSystems/magic-nix-cache-action@main
+
+      - name: nix flake check
+        run: nix flake check --print-build-logs --no-update-lock-file
+
+      # NOTE: there is no separate "install Terraform / tflint / gcloud" step.
+      # devenv (driven by flake.nix) provides them. `nix flake check` runs the
+      # fmt-check, validate, and tflint derivations defined in flake.nix.
+      #
+      # TODO(workload-identity-federation):
+      # When we want CI to run `terraform plan` against GCP, add a job that:
+      #   1. Requests an OIDC token via `permissions: id-token: write`.
+      #   2. Authenticates with `google-github-actions/auth@v2` using a WIF
+      #      provider + impersonated service account — NOT a JSON key.
+      #   3. Runs `nix develop --command terraform plan -out=tfplan`.
+      # See:
+      #   https://github.com/google-github-actions/auth#setting-up-workload-identity-federation

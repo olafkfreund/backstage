@@ -1,0 +1,61 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  terraform:
+    name: terraform fmt + validate
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
+      - name: terraform fmt -check
+        run: terraform fmt -check -recursive
+      - name: terraform init -backend=false
+        run: terraform init -backend=false
+      - name: terraform validate
+        run: terraform validate
+      - name: tflint
+        uses: terraform-linters/setup-tflint@v4
+        with:
+          tflint_version: latest
+      - run: tflint --init
+      - run: tflint -f compact
+
+  helm:
+    name: helm lint + template
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-helm@v4
+        with:
+          version: v3.16.2
+      - name: helm dependency update
+        run: helm dependency update charts/baseline
+      - name: helm lint
+        run: helm lint charts/baseline
+      - name: helm template
+        run: helm template baseline charts/baseline > /tmp/baseline.yaml
+
+  kubectl:
+    name: kubectl dry-run
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-kubectl@v4
+        with:
+          version: v1.31.0
+      - name: kubectl dry-run apps/example
+        run: |
+          kubectl apply --dry-run=client -f apps/example/ --recursive

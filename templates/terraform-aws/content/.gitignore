@@ -1,0 +1,64 @@
+# ------------------------------------------------------------------
+# Terraform
+# ------------------------------------------------------------------
+.terraform/
+.terraform.lock.hcl.bak
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+
+# Plan artifacts
+tfplan
+*.tfplan
+
+# Variable files with secrets -- NEVER commit these
+terraform.tfvars
+*.auto.tfvars
+*.auto.tfvars.json
+*.tfvars.json
+!terraform.tfvars.example
+
+# Override files
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# CLI configuration
+.terraformrc
+terraform.rc
+
+# ------------------------------------------------------------------
+# Bootstrap exception: DO commit backend-bootstrap/terraform.tfstate
+# so the one-time backend creation is auditable. We blanket-ignored
+# *.tfstate above; un-ignore the bootstrap one explicitly.
+# ------------------------------------------------------------------
+!backend-bootstrap/terraform.tfstate
+!backend-bootstrap/terraform.tfstate.backup
+
+# ------------------------------------------------------------------
+# direnv / Nix
+# ------------------------------------------------------------------
+.direnv/
+.devenv/
+result
+result-*
+
+# ------------------------------------------------------------------
+# Editor / OS
+# ------------------------------------------------------------------
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# ------------------------------------------------------------------
+# Local secrets / env
+# ------------------------------------------------------------------
+.env
+.env.local
+*.pem
+*.key

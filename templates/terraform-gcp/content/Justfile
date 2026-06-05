@@ -1,0 +1,51 @@
+# Run `just --list` to see available recipes.
+
+set shell := ["bash", "-cu"]
+
+default:
+    @just --list
+
+# Format all Terraform files in place.
+fmt:
+    terraform fmt -recursive
+
+# Check formatting without modifying files (CI-style).
+fmt-check:
+    terraform fmt -check -recursive -diff
+
+# Initialise without contacting the backend (no creds required).
+init-offline:
+    terraform init -backend=false -input=false
+
+# Initialise with the GCS backend.
+init:
+    terraform init -input=false
+
+# Validate the configuration (offline init first).
+validate: init-offline
+    terraform validate
+
+# Run tflint across the whole tree.
+lint:
+    tflint --init
+    tflint --recursive
+
+# All the cheap checks CI runs.
+check: fmt-check validate lint
+
+# Produce a plan artefact.
+plan: init
+    terraform plan -out=tfplan
+
+# Apply a saved plan.
+apply:
+    terraform apply tfplan
+
+# Regenerate per-module README sections from inputs/outputs.
+docs:
+    terraform-docs markdown table --output-file README.md --output-mode inject .
+    terraform-docs markdown table --output-file README.md --output-mode inject backend-bootstrap
+
+# Bootstrap the state bucket (one-time).
+bootstrap:
+    cd backend-bootstrap && terraform init && terraform apply

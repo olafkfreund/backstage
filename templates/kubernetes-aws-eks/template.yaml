@@ -1,0 +1,158 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: kubernetes-aws-eks
+  title: Kubernetes on AWS EKS (Terraform + Helm + devenv + flake)
+  description: |
+    Production-ready AWS EKS cluster provisioned by Terraform, with a baseline
+    Helm chart bundling Traefik (ingress) and cert-manager (TLS), plus an
+    example workload. Reproducible local toolchain via Nix flake + devenv.
+  tags:
+    - kubernetes
+    - aws
+    - eks
+    - terraform
+    - helm
+    - nix
+spec:
+  owner: olafkfreund
+  type: service
+
+  parameters:
+    - title: Project metadata
+      required:
+        - name
+        - description
+        - owner
+      properties:
+        name:
+          title: Name
+          type: string
+          description: Unique name for this EKS project (kebab-case)
+          pattern: '^[a-z0-9]+(-[a-z0-9]+)*$'
+          ui:autofocus: true
+        description:
+          title: Description
+          type: string
+          description: What this cluster is for
+        owner:
+          title: Owner
+          type: string
+          description: Owning team
+          ui:field: EntityPicker
+          ui:options:
+            catalogFilter:
+              - kind: Group
+        system:
+          title: System
+          type: string
+          description: System this cluster belongs to (optional)
+          ui:field: EntityPicker
+          ui:options:
+            catalogFilter:
+              - kind: System
+
+    - title: Cluster configuration
+      required:
+        - awsRegion
+        - clusterName
+        - nodeInstanceType
+      properties:
+        awsRegion:
+          title: AWS Region
+          type: string
+          description: AWS region for the EKS control plane and nodes
+          default: us-east-1
+          enum:
+            - us-east-1
+            - us-east-2
+            - us-west-1
+            - us-west-2
+            - eu-west-1
+            - eu-central-1
+            - ap-southeast-1
+            - ap-northeast-1
+          enumNames:
+            - 'US East (N. Virginia) - us-east-1'
+            - 'US East (Ohio) - us-east-2'
+            - 'US West (N. California) - us-west-1'
+            - 'US West (Oregon) - us-west-2'
+            - 'Europe (Ireland) - eu-west-1'
+            - 'Europe (Frankfurt) - eu-central-1'
+            - 'Asia Pacific (Singapore) - ap-southeast-1'
+            - 'Asia Pacific (Tokyo) - ap-northeast-1'
+        clusterName:
+          title: Cluster name
+          type: string
+          description: EKS cluster name
+          default: ${{ parameters.name }}-eks
+        nodeInstanceType:
+          title: Node instance type
+          type: string
+          description: EC2 instance type for the managed node group
+          default: t3.medium
+          enum:
+            - t3.medium
+            - t3.large
+            - m5.large
+            - m5.xlarge
+          enumNames:
+            - 't3.medium (2 vCPU, 4 GiB) - dev/test'
+            - 't3.large (2 vCPU, 8 GiB) - small workloads'
+            - 'm5.large (2 vCPU, 8 GiB) - general purpose'
+            - 'm5.xlarge (4 vCPU, 16 GiB) - heavier workloads'
+
+    - title: Repository location
+      required:
+        - destination
+      properties:
+        destination:
+          title: Repository location
+          type: string
+          description: GitHub repo to create (owner/repo)
+          ui:field: RepoUrlPicker
+          ui:options:
+            allowedHosts:
+              - github.com
+
+  steps:
+    - id: fetch
+      name: Fetch skeleton
+      action: fetch:template
+      input:
+        url: ./content
+        values:
+          name: ${{ parameters.name }}
+          description: ${{ parameters.description }}
+          owner: ${{ parameters.owner }}
+          system: ${{ parameters.system }}
+          awsRegion: ${{ parameters.awsRegion }}
+          clusterName: ${{ parameters.clusterName }}
+          nodeInstanceType: ${{ parameters.nodeInstanceType }}
+          destination: ${{ parameters.destination }}
+
+    - id: publish
+      name: Publish to GitHub
+      action: publish:github
+      input:
+        repoUrl: ${{ parameters.destination }}
+        defaultBranch: main
+        description: ${{ parameters.description }}
+        repoVisibility: private
+
+    - id: register
+      name: Register in catalog
+      action: catalog:register
+      input:
+        repoContentsUrl: ${{ steps.publish.output.repoContentsUrl }}
+        catalogInfoPath: '/catalog-info.yaml'
+
+  output:
+    links:
+      - title: Source repository
+        url: ${{ steps.publish.output.remoteUrl }}
+      - title: Open in catalog
+        icon: catalog
+        entityRef: ${{ steps.register.output.entityRef }}
+    entityRef: ${{ steps.register.output.entityRef }}
+    remoteUrl: ${{ steps.publish.output.remoteUrl }}

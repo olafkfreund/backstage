@@ -1,0 +1,82 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ '{{' }} github.ref {{ '}}' }}
+  cancel-in-progress: true
+
+jobs:
+  flake-check:
+    name: nix flake check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@main
+
+      - name: Nix flake check
+        run: nix flake check --no-build --accept-flake-config
+
+  terraform-validate:
+    name: terraform fmt + validate
+    runs-on: ubuntu-latest
+    needs: flake-check
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@main
+
+      - name: terraform fmt -check
+        run: nix develop --accept-flake-config --command bash -c "cd infra && terraform fmt -recursive -check -diff"
+
+      - name: terraform init (no backend)
+        run: nix develop --accept-flake-config --command bash -c "cd infra && terraform init -backend=false"
+
+      - name: terraform validate
+        run: nix develop --accept-flake-config --command bash -c "cd infra && terraform validate"
+
+      - name: tflint
+        run: nix develop --accept-flake-config --command bash -c "cd infra && tflint --init && tflint"
+
+  helm-lint:
+    name: helm lint
+    runs-on: ubuntu-latest
+    needs: flake-check
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@main
+
+      - name: helm dependency update
+        run: nix develop --accept-flake-config --command bash -c "helm dependency update charts/baseline"
+
+      - name: helm lint
+        run: nix develop --accept-flake-config --command bash -c "helm lint charts/baseline"
+
+      - name: helm template (smoke test render)
+        run: nix develop --accept-flake-config --command bash -c "helm template baseline charts/baseline > /tmp/baseline.rendered.yaml && wc -l /tmp/baseline.rendered.yaml"
+
+  kubectl-dry-run:
+    name: kubectl dry-run (client)
+    runs-on: ubuntu-latest
+    needs: flake-check
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@main
+
+      - name: kubectl apply --dry-run=client
+        run: nix develop --accept-flake-config --command bash -c "kubectl apply --dry-run=client -f apps/example/"

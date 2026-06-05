@@ -1,0 +1,64 @@
+# Baseline platform values for ${{ values.name }}
+
+traefik:
+  enabled: true
+  fullnameOverride: traefik
+  deployment:
+    replicas: 2
+  service:
+    type: LoadBalancer
+    annotations:
+      cloud.google.com/load-balancer-type: "External"
+  ports:
+    web:
+      port: 8000
+      exposedPort: 80
+      protocol: TCP
+    websecure:
+      port: 8443
+      exposedPort: 443
+      protocol: TCP
+      tls:
+        enabled: true
+  ingressRoute:
+    dashboard:
+      enabled: false
+  providers:
+    kubernetesCRD:
+      enabled: true
+      allowCrossNamespace: true
+    kubernetesIngress:
+      enabled: true
+      publishedService:
+        enabled: true
+  logs:
+    general:
+      level: INFO
+    access:
+      enabled: true
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+certManager:
+  enabled: true
+  fullnameOverride: cert-manager
+  installCRDs: true
+  global:
+    leaderElection:
+      namespace: cert-manager
+  prometheus:
+    enabled: false
+  webhook:
+    timeoutSeconds: 30
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi

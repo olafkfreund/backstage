@@ -1,0 +1,45 @@
+# Terraform
+.terraform/
+.terraform.lock.hcl.bak
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+crash.log
+crash.*.log
+tfplan
+*.tfplan
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+
+# tfvars — secrets/local config
+terraform.tfvars
+*.auto.tfvars
+!terraform.tfvars.example
+
+# Nix / direnv
+.direnv/
+.devenv/
+.devenv.flake.nix
+result
+result-*
+.pre-commit-config.yaml.bak
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Local environment
+.envrc.local
+.env
+.env.*
+!.env.example
+
+# tflint plugins
+.tflint.d/

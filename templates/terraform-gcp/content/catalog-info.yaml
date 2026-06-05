@@ -1,0 +1,25 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: ${{ values.name }}
+  description: ${{ values.description }}
+  annotations:
+    github.com/project-slug: ${{ values.destination.owner }}/${{ values.destination.repo }}
+    backstage.io/techdocs-ref: dir:.
+    backstage.io/source-location: url:https://github.com/${{ values.destination.owner }}/${{ values.destination.repo }}
+  tags:
+    - terraform
+    - gcp
+    - infrastructure
+    - iac
+  links:
+    - url: https://console.cloud.google.com/home/dashboard?project=${{ values.gcpProject }}
+      title: GCP Console
+      icon: dashboard
+spec:
+  type: service
+  lifecycle: production
+  owner: ${{ values.owner }}
+{%- if values.system %}
+  system: ${{ values.system }}
+{%- endif %}

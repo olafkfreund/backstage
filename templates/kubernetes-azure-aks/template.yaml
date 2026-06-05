@@ -1,0 +1,152 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: kubernetes-azure-aks
+  title: Kubernetes on Azure AKS (Terraform + Helm + devenv + flake)
+  description: |
+    Production-ready Azure Kubernetes Service (AKS) cluster provisioned with Terraform,
+    baseline Helm chart (traefik + cert-manager), workload identity, and a Nix devenv flake.
+  tags:
+    - kubernetes
+    - azure
+    - aks
+    - terraform
+    - helm
+    - nix
+    - devenv
+spec:
+  owner: olafkfreund
+  type: service
+
+  parameters:
+    - title: Project
+      required:
+        - name
+        - description
+        - owner
+        - azureSubscriptionId
+      properties:
+        name:
+          title: Name
+          type: string
+          description: Unique name for the cluster project (used as repo + AKS prefix)
+          pattern: '^[a-z0-9-]+$'
+        description:
+          title: Description
+          type: string
+          description: What is this cluster for?
+        owner:
+          title: Owner
+          type: string
+          description: Owning group
+          ui:field: EntityPicker
+          ui:options:
+            catalogFilter:
+              kind: Group
+        system:
+          title: System
+          type: string
+          description: System this cluster belongs to (optional)
+          ui:field: EntityPicker
+          ui:options:
+            catalogFilter:
+              kind: System
+
+    - title: Azure & Cluster
+      required:
+        - azureSubscriptionId
+        - azureLocation
+        - clusterName
+        - nodeVmSize
+      properties:
+        azureSubscriptionId:
+          title: Azure Subscription ID
+          type: string
+          description: Target Azure subscription GUID
+          pattern: '^[0-9a-fA-F-]{36}$'
+        azureLocation:
+          title: Azure Region
+          type: string
+          default: uksouth
+          enum:
+            - uksouth
+            - ukwest
+            - westeurope
+            - northeurope
+            - eastus
+            - eastus2
+            - westus2
+            - westus3
+            - centralus
+        clusterName:
+          title: AKS Cluster Name
+          type: string
+          default: ${{ parameters.name }}-aks
+          description: Name of the AKS cluster (must be globally unique within RG)
+        nodeVmSize:
+          title: Node VM Size
+          type: string
+          default: Standard_D2s_v5
+          enum:
+            - Standard_D2s_v5
+            - Standard_D4s_v5
+            - Standard_D8s_v5
+            - Standard_B2s
+            - Standard_B4ms
+            - Standard_E2s_v5
+            - Standard_E4s_v5
+
+    - title: Repository
+      required:
+        - destination
+      properties:
+        destination:
+          title: Repository Location
+          type: string
+          ui:field: RepoUrlPicker
+          ui:options:
+            allowedHosts:
+              - github.com
+
+  steps:
+    - id: fetch
+      name: Fetch Skeleton
+      action: fetch:template
+      input:
+        url: ./content
+        values:
+          name: ${{ parameters.name }}
+          description: ${{ parameters.description }}
+          owner: ${{ parameters.owner }}
+          system: ${{ parameters.system }}
+          azureSubscriptionId: ${{ parameters.azureSubscriptionId }}
+          azureLocation: ${{ parameters.azureLocation }}
+          clusterName: ${{ parameters.clusterName }}
+          nodeVmSize: ${{ parameters.nodeVmSize }}
+          destination: ${{ parameters.destination }}
+
+    - id: publish
+      name: Publish to GitHub
+      action: publish:github
+      input:
+        repoUrl: ${{ parameters.destination }}
+        defaultBranch: main
+        description: ${{ parameters.description }}
+        repoVisibility: private
+
+    - id: register
+      name: Register in Catalog
+      action: catalog:register
+      input:
+        repoContentsUrl: ${{ steps.publish.output.repoContentsUrl }}
+        catalogInfoPath: /catalog-info.yaml
+
+  output:
+    links:
+      - title: Source Repository
+        url: ${{ steps.publish.output.remoteUrl }}
+      - title: Open in Catalog
+        icon: catalog
+        entityRef: ${{ steps.register.output.entityRef }}
+    entityRef: ${{ steps.register.output.entityRef }}
+    remoteUrl: ${{ steps.publish.output.remoteUrl }}
